@@ -327,14 +327,17 @@ func (h HeadersInputContainer) View() string {
 }
 
 // GetHeaders returns the current key-value pairs from the input fields.
+// Only headers that are not "Empty" and have a non-empty value are included.
 func (h HeadersInputContainer) GetHeaders() map[string]string {
 	headers := make(map[string]string)
 	for _, input := range h.inputs {
 		if len(input.HeaderSelect) > 0 && input.SelectedHeader < len(input.HeaderSelect) {
-			key := input.HeaderSelect[input.SelectedHeader]
+			selectedHeaderKey := input.HeaderSelect[input.SelectedHeader]
 			value := input.ValueInput.Value()
-			if key != "" && value != "" {
-				headers[key] = value
+
+			// Only add if the selected header is not "Empty" and the value is non-empty
+			if selectedHeaderKey != "Empty" && value != "" {
+				headers[selectedHeaderKey] = value
 			}
 		}
 	}

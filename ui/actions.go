@@ -51,6 +51,10 @@ func (a *App) handleSubmit() tea.Cmd {
 		a.urlInput.SetActive(true) // Allow user to correct URL
 		return nil
 	}
+
+	// Get headers from HeadersInputContainer via QueryTab
+	headers := a.tabContainer.GetQueryTab().HeadersInput.GetHeaders()
+
 	// Return a command that will execute the HTTP request asynchronously
 	return tea.Batch(
 		spinnerCmd,
@@ -64,6 +68,11 @@ func (a *App) handleSubmit() tea.Cmd {
 				return RequestCompleteMsg{
 					Error: err,
 				}
+			}
+
+			// Add headers to the request
+			for key, value := range headers {
+				req.Header.Set(key, value)
 			}
 
 			// Execute the HTTP request
