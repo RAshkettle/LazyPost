@@ -186,9 +186,11 @@ func (q *QueryTab) Update(msg tea.Msg) tea.Cmd {
 				if currentInnerTab == "Params" && q.ParamsInput.Active {
 					cmd = q.ParamsInput.Update(msg) // ParamsInput handles its own internal nav keys
 					cmds = append(cmds, cmd)
-				} else if currentInnerTab == "Headers" && q.HeadersInput.Active {
-					cmd = q.HeadersInput.Update(msg)
-					cmds = append(cmds, cmd)
+				} else if currentInnerTab == "Headers" && q.HeadersInput.Active { // Check Active field
+					// Update returns (HeadersInputContainer, tea.Cmd)
+					newHeadersInput, headerCmd := q.HeadersInput.Update(msg)
+					q.HeadersInput = newHeadersInput
+					cmds = append(cmds, headerCmd)
 				} else if currentInnerTab == "Body" && q.QueryBodyInput.Focused() {
 					q.QueryBodyInput, cmd = q.QueryBodyInput.Update(msg)
 					cmds = append(cmds, cmd)
@@ -202,8 +204,10 @@ func (q *QueryTab) Update(msg tea.Msg) tea.Cmd {
 				cmds = append(cmds, cmd)
 			}
 			if currentInnerTab == "Headers" {
-				cmd = q.HeadersInput.Update(msg)
-				cmds = append(cmds, cmd)
+				// Update returns (HeadersInputContainer, tea.Cmd)
+				newHeadersInput, headerCmd := q.HeadersInput.Update(msg)
+				q.HeadersInput = newHeadersInput
+				cmds = append(cmds, headerCmd)
 			}
 			// QueryBodyInput also needs updates for its state (e.g., cursor blink)
 			// even if it's not the active tab, but especially if it is.
