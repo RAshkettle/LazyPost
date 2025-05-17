@@ -18,6 +18,7 @@ type QueryTab struct {
 	Height         int             // Height of the component in characters
 	Active         bool            // Whether the component is currently active/focused
 	ParamsInput    ParamsContainer // Container for parameter inputs
+	HeadersInput   HeadersInputContainer // Container for header inputs
 	QueryBodyInput textarea.Model  // Textarea for request body input 
 
 	// Placeholder content for other tabs
@@ -33,6 +34,7 @@ func NewQueryTab() QueryTab {
 	headersContent := "Configure request headers here."
 
 	paramsInput := NewParamsContainer()
+	headersInput := NewHeadersInputContainer()
 
 	bodyInput := textarea.New()
 	bodyInput.Placeholder = "Enter request body here in JSON..."
@@ -45,6 +47,7 @@ func NewQueryTab() QueryTab {
 		Height:         0,
 		Active:         false,
 		ParamsInput:    paramsInput,
+		HeadersInput:   headersInput,
 		QueryBodyInput: bodyInput, 
 		authContent:    authContent,
 		headersContent: headersContent,
@@ -64,6 +67,7 @@ func (q *QueryTab) SetWidth(width int) {
 		actualContentDisplayWidth = 0
 	}
 	q.ParamsInput.SetWidth(actualContentDisplayWidth)
+	q.HeadersInput.SetWidth(actualContentDisplayWidth)
 
 	queryBodyInputWidth := actualContentDisplayWidth - 2
 	if queryBodyInputWidth < 0 {
@@ -90,6 +94,7 @@ func (q *QueryTab) SetHeight(height int) {
 		actualContentDisplayHeight = 0
 	}
 	q.ParamsInput.SetHeight(actualContentDisplayHeight)
+	q.HeadersInput.SetHeight(actualContentDisplayHeight)
 
 	queryBodyInputHeight := actualContentDisplayHeight - 2
 	if queryBodyInputHeight < 0 {
@@ -108,16 +113,24 @@ func (q *QueryTab) SetActive(active bool) {
 func (q *QueryTab) updateFocus() {
 	isParamsActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Params"
 	isBodyActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Body"
+	isHeadersActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Headers"
 
 	if isParamsActive {
 		q.ParamsInput.SetActive(true) 
 		q.QueryBodyInput.Blur()
+		q.HeadersInput.SetActive(false)
 	} else if isBodyActive {
 		q.ParamsInput.SetActive(false)
 		q.QueryBodyInput.Focus() 
+		q.HeadersInput.SetActive(false)
+	} else if isHeadersActive {
+		q.ParamsInput.SetActive(false)
+		q.QueryBodyInput.Blur()
+		q.HeadersInput.SetActive(true)
 	} else {
 		q.ParamsInput.SetActive(false)
 		q.QueryBodyInput.Blur()
+		q.HeadersInput.SetActive(false)
 	}
 }
 
@@ -173,6 +186,9 @@ func (q *QueryTab) Update(msg tea.Msg) tea.Cmd {
 				if currentInnerTab == "Params" && q.ParamsInput.Active {
 					cmd = q.ParamsInput.Update(msg) // ParamsInput handles its own internal nav keys
 					cmds = append(cmds, cmd)
+				} else if currentInnerTab == "Headers" && q.HeadersInput.Active {
+					cmd = q.HeadersInput.Update(msg)
+					cmds = append(cmds, cmd)
 				} else if currentInnerTab == "Body" && q.QueryBodyInput.Focused() {
 					q.QueryBodyInput, cmd = q.QueryBodyInput.Update(msg)
 					cmds = append(cmds, cmd)
@@ -183,6 +199,10 @@ func (q *QueryTab) Update(msg tea.Msg) tea.Cmd {
 			// This is important for components to process their own command results (like focus/blur)
 			if currentInnerTab == "Params" {
 				cmd = q.ParamsInput.Update(msg)
+				cmds = append(cmds, cmd)
+			}
+			if currentInnerTab == "Headers" {
+				cmd = q.HeadersInput.Update(msg)
 				cmds = append(cmds, cmd)
 			}
 			// QueryBodyInput also needs updates for its state (e.g., cursor blink)
@@ -266,6 +286,8 @@ func (q QueryTab) View() string {
 	switch activeInnerTabName {
 	case "Params":
 		currentContent = q.ParamsInput.View()
+	case "Headers":
+		currentContent = q.HeadersInput.View()
 	case "Body":
 		activeQueryTabBorderColor := styles.PrimaryColor
 		inactiveQueryTabBorderColor := styles.SecondaryColor
