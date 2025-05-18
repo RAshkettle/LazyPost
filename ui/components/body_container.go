@@ -240,7 +240,7 @@ func (b BodyContainer) View() string {
 	// Show scrolling help text when body is active
 	if b.Active {
 		helpStyle := styles.HelpStyle
-		
+		helpStyle.Width(b.Width - 2)
 		// Show helpful scrolling indicators
 		var helpParts []string
 		
