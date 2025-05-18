@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/RAshkettle/LazyPost/ui/styles"
 	"github.com/atotto/clipboard" // Added for clipboard functionality
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -238,11 +239,7 @@ func (b BodyContainer) View() string {
 	
 	// Show scrolling help text when body is active
 	if b.Active {
-		helpStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFFF00")). // Yellow color
-			Align(lipgloss.Right).
-			Bold(true).                           // Make it bold
-			Width(b.Width - 2) // Account for padding
+		helpStyle := styles.HelpStyle
 		
 		// Show helpful scrolling indicators
 		var helpParts []string

@@ -4,8 +4,8 @@ package components
 import (
 	"time"
 
+	"github.com/RAshkettle/LazyPost/ui/styles"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // TickMsg is sent when the timer ticks.
@@ -80,19 +80,11 @@ func (t Toast) View() string {
 		return ""
 	}
 
-	// Create warning style
-	toastStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#FFD700")). // Gold border
-		Foreground(lipgloss.Color("#FFFFFF")).       // White text
-		Background(lipgloss.Color("#A52A2A")).       // Brown-red background
-		Padding(0, 1).                               // Add some padding
-		Align(lipgloss.Center, lipgloss.Center).     // Center content
-		Width(t.Width).                              // Use the specified width
-		Bold(true)                                   // Make the text bold
+
 
 	// Add a dismiss hint
 	content := t.Message + "\n\nPress Enter to dismiss"
+	
 
-	return toastStyle.Render(content)
+	return styles.ToastStyle.Render(content)
 }

@@ -45,4 +45,24 @@ var (
 	SelectedItemStyle = lipgloss.NewStyle().
 		Foreground(BrightYellow).
 		Bold(true)
-)
+
+		// Create warning style
+	ToastStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#FFD700")). // Gold border
+		Foreground(lipgloss.Color("#FFFFFF")).       // White text
+		Background(lipgloss.Color("#A52A2A")).       // Brown-red background
+		Padding(0, 1).                               // Add some padding
+		Align(lipgloss.Center, lipgloss.Center).     // Center content                             // Use the specified width
+		Bold(true)  // Make the text bold
+
+		HelpStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFFF00")). // Yellow color
+			Align(lipgloss.Right).
+			Bold(true).                           // Make it bold
+			Width(b.Width - 2) // Account for padding
+
+
+
+
+	)
