@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RAshkettle/LazyPost/banner"
 	"github.com/RAshkettle/LazyPost/ui/components"
-	"github.com/RAshkettle/LazyPost/ui/styles"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -28,7 +26,6 @@ type App struct {
 	urlInputWidth  int                       // Cached width of the URL input, used for spinner positioning.
 	urlInputX      int                       // Cached X coordinate of the URL input, used for spinner positioning.
 	keymap         KeyMap                    // Defines keybindings for the application.
-	banner         string                    // Stores the application banner text, loaded from banner.txt.
 }
 
 // NewApp initializes and returns a new App model.
@@ -41,9 +38,7 @@ func NewApp() App {
 	toast := components.NewToast()
 	spinner := components.NewSpinner()
 
-	// Load the banner from file
-	bannerText := banner.Banner
-	
+
 
 	return App{
 		methodSelector: methodSelector,
@@ -55,7 +50,7 @@ func NewApp() App {
 		width:          0,
 		height:         0,
 		keymap:         DefaultKeyMap,
-		banner:         bannerText,
+
 	}
 }
 
@@ -311,8 +306,7 @@ func (a App) View() string {
 
 // renderMainView creates the main UI layout with banner, inputs, and tabs
 func (a App) renderMainView() string {
-	// Render the banner with green color to match the primary color theme
-	bannerBox := a.renderBanner()
+
 
 	// Render the components
 	methodBox := a.methodSelector.View()
@@ -325,7 +319,7 @@ func (a App) renderMainView() string {
 
 	// Add vertical arrangement with the banner at top, then input row, then tab container
 	// Add a 2-line gap between the components for better spacing
-	fullView := lipgloss.JoinVertical(lipgloss.Left, bannerBox, "", topRow, "", tabBox)
+	fullView := lipgloss.JoinVertical(lipgloss.Left, "", topRow, "", tabBox)
 
 	// Add 5% padding on each side for centering
 	paddingWidth := int(float64(a.width) * 0.05)
@@ -339,15 +333,7 @@ func (a App) renderMainView() string {
 	return centeredStyle.Render(fullView)
 }
 
-// renderBanner styles and returns the application banner
-func (a App) renderBanner() string {
-	bannerStyle := lipgloss.NewStyle().
-		Foreground(styles.PrimaryColor). // Green (matching active elements)
-		Bold(true).
-		Align(lipgloss.Center)
 
-	return bannerStyle.Render(a.banner)
-}
 
 // renderToastOverlay creates an overlay with a toast notification centered on the screen
 func (a App) renderToastOverlay() string {
