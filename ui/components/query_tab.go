@@ -18,22 +18,24 @@ type QueryTab struct {
 	Height         int             // Height of the component in characters
 	Active         bool            // Whether the component is currently active/focused
 	ParamsInput    ParamsContainer // Container for parameter inputs
+	AuthInput      AuthContainer   // Container for authentication inputs
 	HeadersInput   HeadersInputContainer // Container for header inputs
-	QueryBodyInput textarea.Model  // Textarea for request body input 
+	QueryBodyInput textarea.Model  // Textarea for request body input
 
 	// Placeholder content for other tabs
-	authContent    string
-	headersContent string
+	// authContent    string // No longer needed
+	headersContent string // This might still be used if Headers tab is not fully componentized
 }
 
 // NewQueryTab creates a new query tab component with predefined inner tabs.
 // The component is initialized with the "Params" tab selected, zero dimensions,
 // and inactive state. Each inner tab has default placeholder content.
 func NewQueryTab() QueryTab {
-	authContent := "Configure authentication settings here."
+	// authContent := "Configure authentication settings here." // No longer needed
 	headersContent := "Configure request headers here."
 
 	paramsInput := NewParamsContainer()
+	authInput := NewAuthContainer() // Initialize AuthContainer
 	headersInput := NewHeadersInputContainer()
 
 	bodyInput := textarea.New()
@@ -47,9 +49,10 @@ func NewQueryTab() QueryTab {
 		Height:         0,
 		Active:         false,
 		ParamsInput:    paramsInput,
+		AuthInput:      authInput, // Add AuthContainer to initialization
 		HeadersInput:   headersInput,
-		QueryBodyInput: bodyInput, 
-		authContent:    authContent,
+		QueryBodyInput: bodyInput,
+		// authContent:    authContent, // No longer needed
 		headersContent: headersContent,
 	}
 }
@@ -67,6 +70,7 @@ func (q *QueryTab) SetWidth(width int) {
 		actualContentDisplayWidth = 0
 	}
 	q.ParamsInput.SetWidth(actualContentDisplayWidth)
+	q.AuthInput.SetWidth(actualContentDisplayWidth) // Set width for AuthContainer
 	q.HeadersInput.SetWidth(actualContentDisplayWidth)
 
 	queryBodyInputWidth := actualContentDisplayWidth - 2
@@ -79,7 +83,7 @@ func (q *QueryTab) SetWidth(width int) {
 // SetHeight sets the height of the component in characters.
 func (q *QueryTab) SetHeight(height int) {
 	q.Height = height
-	innerContainerHeight := q.Height - 2 
+	innerContainerHeight := q.Height - 2
 	if innerContainerHeight < 0 {
 		innerContainerHeight = 0
 	}
@@ -94,6 +98,7 @@ func (q *QueryTab) SetHeight(height int) {
 		actualContentDisplayHeight = 0
 	}
 	q.ParamsInput.SetHeight(actualContentDisplayHeight)
+	q.AuthInput.SetHeight(actualContentDisplayHeight) // Set height for AuthContainer
 	q.HeadersInput.SetHeight(actualContentDisplayHeight)
 
 	queryBodyInputHeight := actualContentDisplayHeight - 2
@@ -112,23 +117,33 @@ func (q *QueryTab) SetActive(active bool) {
 // updateFocus manages focus for internal components based on active state and active inner tab.
 func (q *QueryTab) updateFocus() {
 	isParamsActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Params"
+	isAuthActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Auth" // Check for Auth tab
 	isBodyActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Body"
 	isHeadersActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Headers"
 
 	if isParamsActive {
-		q.ParamsInput.SetActive(true) 
+		q.ParamsInput.SetActive(true)
+		q.AuthInput.SetActive(false) // Deactivate AuthContainer
+		q.QueryBodyInput.Blur()
+		q.HeadersInput.SetActive(false)
+	} else if isAuthActive { // Handle Auth tab focus
+		q.ParamsInput.SetActive(false)
+		q.AuthInput.SetActive(true) // Activate AuthContainer
 		q.QueryBodyInput.Blur()
 		q.HeadersInput.SetActive(false)
 	} else if isBodyActive {
 		q.ParamsInput.SetActive(false)
-		q.QueryBodyInput.Focus() 
+		q.AuthInput.SetActive(false) // Deactivate AuthContainer
+		q.QueryBodyInput.Focus()
 		q.HeadersInput.SetActive(false)
 	} else if isHeadersActive {
 		q.ParamsInput.SetActive(false)
+		q.AuthInput.SetActive(false) // Deactivate AuthContainer
 		q.QueryBodyInput.Blur()
 		q.HeadersInput.SetActive(true)
 	} else {
 		q.ParamsInput.SetActive(false)
+		q.AuthInput.SetActive(false) // Deactivate AuthContainer
 		q.QueryBodyInput.Blur()
 		q.HeadersInput.SetActive(false)
 	}
@@ -141,8 +156,12 @@ func (q *QueryTab) SwitchToInnerTab(tabIndex int) {
 		if currentActiveTabName == "Params" {
 			q.ParamsInput.Blur() 
 			q.ParamsInput.SetActive(false) // Also explicitly deactivate
+		} else if currentActiveTabName == "Auth" { // Handle Auth tab deactivation
+			q.AuthInput.SetActive(false)
 		} else if currentActiveTabName == "Body" {
 			q.QueryBodyInput.Blur()
+		} else if currentActiveTabName == "Headers" {
+			q.HeadersInput.SetActive(false)
 		}
 
 		q.ActiveInnerTab = tabIndex
@@ -184,7 +203,10 @@ func (q *QueryTab) Update(msg tea.Msg) tea.Cmd {
 			default:
 				// If not Tab/Shift+Tab, pass to the active component if it's focused/active
 				if currentInnerTab == "Params" && q.ParamsInput.Active {
-					cmd = q.ParamsInput.Update(msg) // ParamsInput handles its own internal nav keys
+					cmd = q.ParamsInput.Update(msg)
+					cmds = append(cmds, cmd)
+				} else if currentInnerTab == "Auth" && q.AuthInput.Active { // Delegate to AuthInput
+					cmd = q.AuthInput.Update(msg)
 					cmds = append(cmds, cmd)
 				} else if currentInnerTab == "Headers" && q.HeadersInput.Active { // Check Active field
 					// Update returns (HeadersInputContainer, tea.Cmd)
@@ -201,6 +223,10 @@ func (q *QueryTab) Update(msg tea.Msg) tea.Cmd {
 			// This is important for components to process their own command results (like focus/blur)
 			if currentInnerTab == "Params" {
 				cmd = q.ParamsInput.Update(msg)
+				cmds = append(cmds, cmd)
+			}
+			if currentInnerTab == "Auth" { // Pass non-key messages to AuthInput
+				cmd = q.AuthInput.Update(msg)
 				cmds = append(cmds, cmd)
 			}
 			if currentInnerTab == "Headers" {
@@ -290,6 +316,8 @@ func (q QueryTab) View() string {
 	switch activeInnerTabName {
 	case "Params":
 		currentContent = q.ParamsInput.View()
+	case "Auth": // Render AuthContainer
+		currentContent = q.AuthInput.View()
 	case "Headers":
 		currentContent = q.HeadersInput.View()
 	case "Body":
@@ -320,10 +348,16 @@ func (q QueryTab) View() string {
 	default:
 		var placeholderText string
 		switch activeInnerTabName {
-		case "Auth":
-			placeholderText = q.authContent
+		// case "Auth": // No longer needed, AuthInput.View() is used
+		// 	placeholderText = q.authContent
 		case "Headers":
-			placeholderText = q.headersContent
+			// If Headers is not yet a full component, this might still be used.
+			// For now, assuming HeadersInput.View() handles it.
+			// If HeadersInput.View() can be empty or not fully cover the area,
+			// a placeholder might still be relevant under certain conditions.
+			// Let's remove headersContent for now, assuming HeadersInput.View() is sufficient.
+			// placeholderText = q.headersContent 
+			placeholderText = "Headers content via HeadersInput.View()"
 		default:
 			// This case should ideally not be reached if ActiveInnerTab is always valid
 			// and corresponds to one of the defined InnerTabs ("Params", "Auth", "Headers", "Body").
@@ -333,9 +367,17 @@ func (q QueryTab) View() string {
 		placeholderStyle := lipgloss.NewStyle().
 			Width(actualContentDisplayWidth).
 			Height(actualContentDisplayHeight).
-			Padding(1, 2). 
+			Padding(1, 2).
 			Align(lipgloss.Center, lipgloss.Center)
-		currentContent = placeholderStyle.Render(placeholderText)
+
+		// Only render placeholder if not handled by a specific component view
+		if activeInnerTabName != "Params" && activeInnerTabName != "Auth" && activeInnerTabName != "Body" && activeInnerTabName != "Headers" {
+		    currentContent = placeholderStyle.Render(placeholderText)
+		} else if activeInnerTabName == "Headers" && q.HeadersInput.View() == "" { // Example: if HeadersInput can be empty
+			 // currentContent = placeholderStyle.Render("Configure request headers here.")
+             // This is now handled by HeadersInput.View(), if it's empty, it's empty.
+		}
+
 	}
 
 	innerContainer := currentContentBoxBorderStyle.
@@ -380,6 +422,9 @@ func (q *QueryTab) GetBodyContent() string {
 // IsAnyInputFocused checks if any input within the QueryTab is focused.
 func (q *QueryTab) IsAnyInputFocused() bool {
 	if q.InnerTabs[q.ActiveInnerTab] == "Params" && q.ParamsInput.IsAnyInputFocused() {
+		return true
+	}
+	if q.InnerTabs[q.ActiveInnerTab] == "Auth" && q.AuthInput.IsFocused() { // Check AuthInput focus
 		return true
 	}
 	if q.InnerTabs[q.ActiveInnerTab] == "Body" && q.QueryBodyInput.Focused() {

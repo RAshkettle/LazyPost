@@ -55,6 +55,15 @@ var (
 	InactiveInputStyle = BorderStyle.Copy().
 		Padding(0, 1) // Add some horizontal padding for text inside input
 
+	// Style for the items in an open dropdown
+	DropdownItemStyle = lipgloss.NewStyle().
+		Padding(0, 1) // Add some horizontal padding
+
+	// Style for the currently highlighted item in an open dropdown
+	DropdownSelectedItemStyle = DropdownItemStyle.Copy().
+		Background(PrimaryColor).
+		Foreground(SecondaryColor)
+
 	// Style for containers holding inputs or other components
 	InputContainerStyle = BorderStyle.Copy()
 
@@ -94,6 +103,8 @@ type Theme struct {
 	SelectedItemStyle   lipgloss.Style
 	ActiveInputStyle    lipgloss.Style
 	InactiveInputStyle  lipgloss.Style
+	DropdownItemStyle lipgloss.Style // New style for dropdown items
+	DropdownSelectedItemStyle lipgloss.Style // New style for selected dropdown items
 	InputContainerStyle lipgloss.Style
 	DropdownTextStyle   lipgloss.Style
 	DropdownArrowStyle  lipgloss.Style
@@ -116,6 +127,8 @@ var DefaultTheme = Theme{
 	SelectedItemStyle:   SelectedItemStyle,
 	ActiveInputStyle:    ActiveInputStyle,
 	InactiveInputStyle:  InactiveInputStyle,
+	DropdownItemStyle: DropdownItemStyle, // Initialize new style
+	DropdownSelectedItemStyle: DropdownSelectedItemStyle, // Initialize new style
 	InputContainerStyle: InputContainerStyle,
 	DropdownTextStyle:   DropdownTextStyle,
 	DropdownArrowStyle:  DropdownArrowStyle,
