@@ -4,9 +4,9 @@ package ui
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/RAshkettle/LazyPost/banner"
 	"github.com/RAshkettle/LazyPost/ui/components"
 	"github.com/RAshkettle/LazyPost/ui/styles"
 	"github.com/charmbracelet/bubbles/key"
@@ -22,7 +22,7 @@ type App struct {
 	submitButton   components.SubmitButton   // Component for the submit button.
 	tabContainer   components.TabsContainer  // Component for managing query and result tabs.
 	toast          components.Toast          // Component for displaying toast notifications.
-	spinner        components.Spinner        // Component for displaying a loading spinner.
+	spinner        components.Spinner        // Component for displaying a loading spinner.          // Data model for the current HTTP request.
 	width          int                       // Current width of the terminal window.
 	height         int                       // Current height of the terminal window.
 	urlInputWidth  int                       // Cached width of the URL input, used for spinner positioning.
@@ -42,11 +42,8 @@ func NewApp() App {
 	spinner := components.NewSpinner()
 
 	// Load the banner from file
-	bannerData, err := os.ReadFile("banner.txt")
-	bannerText := ""
-	if err == nil {
-		bannerText = string(bannerData)
-	}
+	bannerText := banner.Banner
+	
 
 	return App{
 		methodSelector: methodSelector,
@@ -101,11 +98,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.handleWindowSizeMsg(msg) // Position at the URL input
 	}
 
+
+
 	return a, tea.Batch(cmds...)
 }
-//This refactor sucks much.  However, it's working so I'm just going to leave it for now.
-//TODO: FIX THIS SHIT
-func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea.Cmd) {
+
+func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool,  tea.Cmd) {
 	if a.toast.Visible && msg.String() == "enter" {
 		// Dismiss the toast and focus the URL input
 		a.toast.Hide()
@@ -116,12 +114,12 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea
 
 		// Select all text in URL input
 		a.urlInput.SelectAllText()
-		return nil, true, nil
+		return nil, true,  nil
 	}
 
 	switch {
 	case key.Matches(msg, a.keymap.Quit):
-		return nil, true, tea.Quit
+		return nil, true,  tea.Quit
 
 	case key.Matches(msg, a.keymap.FocusMethod):
 		// Focus method selector
@@ -129,7 +127,7 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea
 		a.urlInput.SetActive(false)
 		a.submitButton.SetActive(false)
 		a.tabContainer.SetActive(false)
-		return nil, true, nil
+		return nil, true,  nil
 
 	case key.Matches(msg, a.keymap.FocusURL):
 		// Focus URL input
@@ -137,12 +135,12 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea
 		a.urlInput.SetActive(true)
 		a.submitButton.SetActive(false)
 		a.tabContainer.SetActive(false)
-		return nil, true, nil
+		return nil, true,  nil
 
 	case key.Matches(msg, a.keymap.FocusSubmit):
 		// Directly execute the submit action (not just focus)
 		cmd := a.handleSubmit()
-		return nil, true, cmd
+		return nil, true,  cmd
 
 	case key.Matches(msg, a.keymap.FocusQuery):
 		// Switch to Query tab
@@ -151,7 +149,7 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea
 		a.urlInput.SetActive(false)
 		a.submitButton.SetActive(false)
 		a.tabContainer.SetActive(true)
-		return nil, true, nil
+		return nil, true,  nil
 
 	case key.Matches(msg, a.keymap.FocusResult):
 		// Switch to Result tab
@@ -160,16 +158,16 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea
 		a.urlInput.SetActive(false)
 		a.submitButton.SetActive(false)
 		a.tabContainer.SetActive(true)
-		return nil, true, nil
+		return nil, true,  nil
 
 	case key.Matches(msg, a.keymap.Next), key.Matches(msg, a.keymap.Prev):
 		// Tab and Shift+Tab only work in tab containers
 		if a.tabContainer.Active {
 			a.tabContainer.Update(msg)
-			return nil, true, nil
+			return nil, true,  nil
 		}
 		// Otherwise, ignore tab/shift+tab
-		return nil, true, nil
+		return nil, true,  nil
 
 	// Let the active component handle other key presses
 	default:
@@ -179,17 +177,17 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea
 			// If method selector is active, let it handle arrow keys
 			if a.methodSelector.Active {
 				a.methodSelector.Update(msg)
-				return nil, true, nil
+				return nil, true,  nil
 			} else if a.urlInput.Active {
 				// URL input handles arrow keys internally
 				if cmd := a.urlInput.Update(msg); cmd != nil {
 					cmds = append(cmds, cmd)
 				}
-				return nil, true, tea.Batch(cmds...)
+				return nil, true,  tea.Batch(cmds...)
 			} else if a.tabContainer.Active {
 				// Tab container might handle arrow keys
 				a.tabContainer.Update(msg)
-				return nil, true, nil
+				return nil, true,  nil
 			}
 		}
 
@@ -204,22 +202,22 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea
 			// Special handling for Enter in URL field (submit the form)
 			if msg.String() == "enter" {
 				cmd := a.handleSubmit()
-				return nil, true, cmd
+				return nil, true,  cmd
 			}
 		} else if a.submitButton.Active {
 			if _, submitted := a.submitButton.Update(msg); submitted {
 				cmd := a.handleSubmit()
-				return nil, true, cmd
+				return nil, true,  cmd
 			}
 		} else if a.tabContainer.Active {
 			a.tabContainer.Update(msg)
 		}
 
 	}
-	return cmds, false, nil
+	return cmds, false,  nil
 }
 
-func (a *App) handleWindowSizeMsg(msg tea.WindowSizeMsg) {
+func(a *App) handleWindowSizeMsg(msg tea.WindowSizeMsg) {
 	a.width = msg.Width
 	a.height = msg.Height
 
@@ -263,7 +261,7 @@ func (a *App) handleWindowSizeMsg(msg tea.WindowSizeMsg) {
 	a.spinner.SetPosition(a.urlInputX, 3)
 }
 
-func (a *App) handleRequestCompleteMsg(msg RequestCompleteMsg) {
+func(a *App) handleRequestCompleteMsg(msg RequestCompleteMsg) {
 	a.spinner.Hide()
 
 	if msg.Error != nil {
