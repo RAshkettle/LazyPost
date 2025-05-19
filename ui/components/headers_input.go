@@ -14,20 +14,20 @@ const numHeaderRows = 9
 
 // HeaderInput represents a single row with a header select and value input.
 type HeaderInput struct {
-	HeaderSelect     []string
-	SelectedHeader   int
-	DropdownOpen     bool
-	ValueInput       textinput.Model
-	width            int
+	HeaderSelect      []string
+	SelectedHeader    int
+	DropdownOpen      bool
+	ValueInput        textinput.Model
+	width             int
 	headerSelectWidth int
-	valueInputWidth  int
+	valueInputWidth   int
 }
 
 // HeadersInputContainer holds multiple HeaderInput rows.
 type HeadersInputContainer struct {
 	inputs          []HeaderInput
 	focusedRow      int
-	focusedInput    int // 0 for HeaderSelect, 1 for ValueInput
+	focusedInput    int  // 0 for HeaderSelect, 1 for ValueInput
 	Active          bool // Added to manage focus state of the container
 	width           int
 	height          int
@@ -45,14 +45,14 @@ var headerOptionsStrings = []string{
 	"Content-MD5", "Content-Type", "Cookie", "Date", "Expect",
 	"Host", "Max-Forwards",
 	"Origin", "Pragma", "Proxy-Authorization", "Range", "Referer",
-	"TE", "Upgrade", "User-Agent", "Via", 
+	"TE", "Upgrade", "User-Agent", "Via",
 	"X-Csrf-Token", "X-Request-ID", "X-Correlation-ID",
 }
 
 // NewHeadersInputContainer creates a new HeadersInputContainer with a predefined number of rows.
 func NewHeadersInputContainer() HeadersInputContainer {
 	inputs := make([]HeaderInput, numHeaderRows)
-	for i := 0; i < numHeaderRows; i++ {
+	for i := range numHeaderRows {
 		valIn := textinput.New()
 		valIn.Placeholder = "Value"
 		valIn.Prompt = "" // Remove the prompt indicator
@@ -80,7 +80,7 @@ func NewHeadersInputContainer() HeadersInputContainer {
 	return HeadersInputContainer{
 		inputs:          inputs,
 		focusedRow:      0,
-		focusedInput:    0, // Start focus on the first header select
+		focusedInput:    0,     // Start focus on the first header select
 		Active:          false, // Initialize Active state
 		showHelp:        true,
 		helpText:        "Use ↑/↓/←/→ to navigate, Enter to toggle dropdown/edit.",
@@ -186,16 +186,19 @@ func (h *HeadersInputContainer) Update(msg tea.Msg) (HeadersInputContainer, tea.
 				h.focusedInput = 1 // Move to ValueInput
 			}
 		case "enter":
-			if h.focusedInput == 0 { // Header select focused
+			switch h.focusedInput {
+			case 0:
 				currentInput.DropdownOpen = !currentInput.DropdownOpen
-			} else if h.focusedInput == 1 { // Value input focused
+			case 1:
 				if currentInput.ValueInput.Focused() {
 					currentInput.ValueInput.Blur()
 				} else {
 					cmd = currentInput.ValueInput.Focus() // textinput.Focus() returns a command
 					cmds = append(cmds, cmd)
 				}
+
 			}
+
 		default:
 			// Other keys are ignored if not handled by the ValueInput above
 			// (e.g. character input when HeaderSelect is the active field)
@@ -210,7 +213,6 @@ func (h *HeadersInputContainer) Update(msg tea.Msg) (HeadersInputContainer, tea.
 		}
 		// currentInput might need to be updated if h.focusedRow changed
 		// The final call to focusCurrentInput will use the updated h.focusedRow
-
 	} // end switch msg.(type)
 
 	// Ensure correct input is focused and collect its focus command (e.g., Blink)
@@ -253,13 +255,13 @@ func (h HeadersInputContainer) View() string {
 	labelRow := lipgloss.JoinHorizontal(
 		lipgloss.Left,
 		lipgloss.NewStyle().Width(h.inputs[0].headerSelectWidth+2).Render(headerLabelStyled), // +2 for padding/border
-		lipgloss.NewStyle().Width(h.inputs[0].valueInputWidth+2).Render(valueLabelStyled),   // +2 for padding/border
+		lipgloss.NewStyle().Width(h.inputs[0].valueInputWidth+2).Render(valueLabelStyled),    // +2 for padding/border
 	)
 	rows = append(rows, labelRow)
 
 	for i, input := range h.inputs {
-		hdrBoxStyle := h.baseHeaderStyle.Copy()
-		valBoxStyle := h.baseValueStyle.Copy()
+		hdrBoxStyle := h.baseHeaderStyle
+		valBoxStyle := h.baseValueStyle
 
 		isFocusedRow := i == h.focusedRow
 
@@ -267,7 +269,7 @@ func (h HeadersInputContainer) View() string {
 		var headerDisplayContent string
 		dropdownIndicator := " ▼"
 		if input.DropdownOpen {
-			dropdownIndicator = " ▲"
+			// dropdownIndicator = " ▲"
 			var items []string
 			for idx, itemStr := range input.HeaderSelect {
 				itemStyle := lipgloss.NewStyle()
@@ -281,7 +283,7 @@ func (h HeadersInputContainer) View() string {
 			headerDisplayContent = strings.Join(items, "\n")
 			// Adjust height for open dropdown
 			// +1 for border, or consider content height directly
-			hdrBoxStyle = hdrBoxStyle.Height(len(input.HeaderSelect) -1) 
+			hdrBoxStyle = hdrBoxStyle.Height(len(input.HeaderSelect) - 1)
 		} else {
 			if len(input.HeaderSelect) > 0 && input.SelectedHeader >= 0 && input.SelectedHeader < len(input.HeaderSelect) {
 				headerDisplayContent = input.HeaderSelect[input.SelectedHeader] + dropdownIndicator

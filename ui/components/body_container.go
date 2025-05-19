@@ -15,26 +15,26 @@ import (
 // BodyContainer represents a scrollable component for displaying HTTP response bodies.
 // It uses a viewport for scrolling through large content.
 type BodyContainer struct {
-	Viewport    viewport.Model // Viewport for scrollable content
-	rawContent  string         // Store raw content for copying
-	Width       int            // Width of the component in characters
-	Height      int            // Height of the component in characters
-	Active      bool           // Whether the component is currently active/focused
+	Viewport   viewport.Model // Viewport for scrollable content
+	rawContent string         // Store raw content for copying
+	Width      int            // Width of the component in characters
+	Height     int            // Height of the component in characters
+	Active     bool           // Whether the component is currently active/focused
 }
 
 // NewBodyContainer creates a new body container with a scrollable viewport.
 func NewBodyContainer() BodyContainer {
 	vp := viewport.New(0, 0)
 	vp.SetContent("Response body will be displayed here.")
-	
+
 	// Configure viewport keybindings
 	vp.KeyMap = viewport.KeyMap{
-		Up:    key.NewBinding(key.WithKeys("up", "k")),
-		Down:  key.NewBinding(key.WithKeys("down", "j")),
-		Left:  key.NewBinding(key.WithKeys("left", "h")),
-		Right: key.NewBinding(key.WithKeys("right", "l")),
-		PageUp:   key.NewBinding(key.WithKeys("pgup")),
-		PageDown: key.NewBinding(key.WithKeys("pgdown")),
+		Up:           key.NewBinding(key.WithKeys("up", "k")),
+		Down:         key.NewBinding(key.WithKeys("down", "j")),
+		Left:         key.NewBinding(key.WithKeys("left", "h")),
+		Right:        key.NewBinding(key.WithKeys("right", "l")),
+		PageUp:       key.NewBinding(key.WithKeys("pgup")),
+		PageDown:     key.NewBinding(key.WithKeys("pgdown")),
 		HalfPageUp:   key.NewBinding(key.WithKeys("ctrl+u")),
 		HalfPageDown: key.NewBinding(key.WithKeys("ctrl+d")),
 	}
@@ -55,12 +55,12 @@ func (b *BodyContainer) SetContent(content string) {
 	if b.Width > 0 && b.Height > 0 {
 		// Store the content and ensure the viewport is properly sized
 		effectiveWidth := b.Width - 4  // Account for 2 chars padding on both sides plus border
-		b.Viewport.Width = b.Width - 2  // Account for border padding
+		b.Viewport.Width = b.Width - 2 // Account for border padding
 		b.Viewport.Height = b.Height - 2
-		
+
 		// Apply text wrapping to ensure content fits within the viewport width
 		wrappedContent := wrapText(content, effectiveWidth)
-		
+
 		// Set the wrapped content and reset the scroll position
 
 		b.Viewport.SetContent(wrappedContent)
@@ -77,10 +77,10 @@ func wrapText(content string, width int) string {
 	if width <= 0 {
 		return content
 	}
-	
+
 	var result strings.Builder
 	lines := strings.Split(content, "\n")
-	
+
 	for i, line := range lines {
 		if len(line) <= width {
 			result.WriteString(line)
@@ -88,9 +88,8 @@ func wrapText(content string, width int) string {
 			// Wrap lines longer than width
 			for j := 0; j < len(line); j += width {
 				end := j + width
-				if end > len(line) {
-					end = len(line)
-				}
+				end = min(end, len(line))
+
 				result.WriteString(line[j:end])
 				if end < len(line) {
 					result.WriteString("\n")
@@ -102,7 +101,7 @@ func wrapText(content string, width int) string {
 			result.WriteString("\n")
 		}
 	}
-	
+
 	return result.String()
 }
 
@@ -111,7 +110,7 @@ func (b *BodyContainer) SetWidth(width int) {
 	b.Width = width
 	if width > 2 { // Only set reasonable dimensions
 		b.Viewport.Width = width - 2 // Account for border padding
-		
+
 		// Re-wrap content when width changes if we have content
 		content := b.Viewport.View()
 		if content != "" && content != "Response body will be displayed here." {
@@ -148,18 +147,18 @@ func (b *BodyContainer) Update(msg tea.Msg) tea.Cmd {
 			// Update dimensions
 			b.Viewport.Width = b.Width - 2
 			b.Viewport.Height = b.Height - 2
-			
+
 			// Re-wrap content based on new width
 			origContent := b.Viewport.View()
 			if origContent != "" && origContent != "Response body will be displayed here." {
 				// Save current scroll position
 				currentPosition := b.Viewport.YOffset
-				
+
 				// Re-wrap text for new dimensions
 				effectiveWidth := b.Width - 6 // Account for 2 chars padding on both sides plus border
 				wrappedContent := wrapText(origContent, effectiveWidth)
 				b.Viewport.SetContent(wrappedContent)
-				
+
 				// Try to restore scroll position (approximately)
 				if currentPosition > 0 && currentPosition < b.Viewport.TotalLineCount() {
 					b.Viewport.YOffset = currentPosition
@@ -167,12 +166,12 @@ func (b *BodyContainer) Update(msg tea.Msg) tea.Cmd {
 			}
 		}
 	}
-	
+
 	// Only handle key navigation when active
 	if !b.Active {
 		return nil
 	}
-	
+
 	switch msgType := msg.(type) {
 	case tea.KeyMsg:
 		switch msgType.String() {
@@ -213,10 +212,10 @@ func addPadding(content string, paddingSize int) string {
 	if paddingSize <= 0 {
 		return content
 	}
-	
+
 	padding := strings.Repeat(" ", paddingSize)
 	var result strings.Builder
-	
+
 	lines := strings.Split(content, "\n")
 	for i, line := range lines {
 		result.WriteString(padding + line + padding)
@@ -224,7 +223,7 @@ func addPadding(content string, paddingSize int) string {
 			result.WriteString("\n")
 		}
 	}
-	
+
 	return result.String()
 }
 
@@ -236,22 +235,22 @@ func (b BodyContainer) View() string {
 
 	// Get viewport content and add padding
 	content := addPadding(b.Viewport.View(), 2)
-	
+
 	// Show scrolling help text when body is active
 	if b.Active {
 		helpStyle := styles.HelpStyle
 		helpStyle.Width(b.Width - 2)
 		// Show helpful scrolling indicators
 		var helpParts []string
-		
+
 		// Check if content needs scrolling
 		atBottom := b.Viewport.AtBottom()
-		
+
 		// If we're not at the top or not at the bottom, content is scrollable
 		if !atBottom || b.Viewport.YOffset > 0 {
 			currLine := fmt.Sprintf("Line %d", b.Viewport.YOffset+1)
 			helpParts = append(helpParts, "↑/↓ to scroll • PgUp/PgDn for faster scrolling • "+currLine)
-			
+
 			// Add indicator if we're not at the bottom
 			if !atBottom {
 				helpParts[len(helpParts)-1] += " (more ↓)"
@@ -259,14 +258,13 @@ func (b BodyContainer) View() string {
 		}
 
 		helpParts = append(helpParts, "'y' to copy")
-		
+
 		helpText := strings.Join(helpParts, " • ")
 
 		if helpText != "" {
 			content = lipgloss.JoinVertical(lipgloss.Left, content, helpStyle.Render(helpText))
 		}
 	}
-	
+
 	return content
 }
-

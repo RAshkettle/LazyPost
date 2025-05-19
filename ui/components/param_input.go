@@ -20,25 +20,24 @@ type ParamInput struct {
 
 // ParamsContainer manages a list of parameter inputs (Name/Value pairs).
 type ParamsContainer struct {
-	Inputs         []ParamInput // Slice of parameter inputs
-	Width          int          // Width of the container
-	Height         int          // Height of the container
-	Active         bool         // Whether the container is currently active/focused
-	focusedRow     int          // Index of the currently focused row
-	focusedCol     int          // 0 for Name, 1 for Value
-	scrollOffset   int          // For scrolling if not all rows fit
-	contentWidth   int          // Calculated width for content area
+	Inputs       []ParamInput // Slice of parameter inputs
+	Width        int          // Width of the container
+	Height       int          // Height of the container
+	Active       bool         // Whether the container is currently active/focused
+	focusedRow   int          // Index of the currently focused row
+	focusedCol   int          // 0 for Name, 1 for Value
+	scrollOffset int          // For scrolling if not all rows fit
+	contentWidth int          // Calculated width for content area
 }
 
 // NewParamsContainer creates a new ParamsContainer with a predefined number of rows.
 func NewParamsContainer() ParamsContainer {
 	inputs := make([]ParamInput, numParamRows)
-	for i := 0; i < numParamRows; i++ {
+	for i := range numParamRows {
 		nameInput := textinput.New()
 		nameInput.Placeholder = "Name"
 		nameInput.Prompt = "" // No prompt, label will be above
 		nameInput.CharLimit = 35
-		
 
 		valueInput := textinput.New()
 		valueInput.Placeholder = "Value"
@@ -54,14 +53,14 @@ func NewParamsContainer() ParamsContainer {
 	}
 
 	return ParamsContainer{
-		Inputs:         inputs,
-		Width:          0,
-		Height:         0,
-		Active:         false,
-		focusedRow:     0,
-		focusedCol:     0,
-		scrollOffset:   0,
-		contentWidth:   0,
+		Inputs:       inputs,
+		Width:        0,
+		Height:       0,
+		Active:       false,
+		focusedRow:   0,
+		focusedCol:   0,
+		scrollOffset: 0,
+		contentWidth: 0,
 	}
 }
 
@@ -75,25 +74,21 @@ func (pc *ParamsContainer) SetWidth(width int) {
 	}
 	// Horizontal space taken by container\'s border and padding
 	containerChrome := currentStyle.GetHorizontalBorderSize() + currentStyle.GetHorizontalPadding()
-	
+
 	pc.contentWidth = width - containerChrome
-	if pc.contentWidth < 0 {
-		pc.contentWidth = 0
-	}
+	pc.contentWidth = max(pc.contentWidth, 0)
 
 	// Space between name and value inputs
 	const spacingBetweenInputs = 1
-	
+
 	// Available width for the two text input columns (outer widths)
 	inputsTotalOuterWidth := pc.contentWidth - spacingBetweenInputs
-	if inputsTotalOuterWidth < 0 {
-		inputsTotalOuterWidth = 0
-	}
+	inputsTotalOuterWidth = max(inputsTotalOuterWidth, 0)
 
-	const textInputHorizontalBorderWidth = 2 
+	const textInputHorizontalBorderWidth = 2
 	const desiredInputContentWidth = 35
 	const idealOuterWidthPerInput = desiredInputContentWidth + textInputHorizontalBorderWidth // 37
-	const totalIdealOuterWidth = idealOuterWidthPerInput * 2 // 74
+	const totalIdealOuterWidth = idealOuterWidthPerInput * 2                                  // 74
 
 	var nameColOuterWidth, valueColOuterWidth int
 
@@ -106,9 +101,12 @@ func (pc *ParamsContainer) SetWidth(width int) {
 		valueColOuterWidth = inputsTotalOuterWidth - nameColOuterWidth // Ensures total is met
 	}
 
-	if nameColOuterWidth < 0 { nameColOuterWidth = 0 }
-	if valueColOuterWidth < 0 { valueColOuterWidth = 0 }
-
+	if nameColOuterWidth < 0 {
+		nameColOuterWidth = 0
+	}
+	if valueColOuterWidth < 0 {
+		valueColOuterWidth = 0
+	}
 
 	for i := range pc.Inputs {
 		nameInputContentWidth := nameColOuterWidth - textInputHorizontalBorderWidth
@@ -161,7 +159,6 @@ func (pc *ParamsContainer) focusCurrentInput() {
 	}
 }
 
-
 func (pc *ParamsContainer) getNumDisplayableInputRows() int {
 	if pc.Height <= 0 {
 		return numParamRows // If height not set, assume all are displayable
@@ -172,22 +169,22 @@ func (pc *ParamsContainer) getNumDisplayableInputRows() int {
 		currentStyle = styles.ActiveBorderStyle
 	}
 	borderSize := currentStyle.GetVerticalBorderSize()
-	
+
 	// Header=1, Separator=1. Total 2 fixed lines for these.
 	// displayable is lines available for input rows AND scroll indicator
-	displayable := pc.Height - borderSize - 2 
+	displayable := pc.Height - borderSize - 2
 
 	// If scrolling will be active (not all rows fit *before* accounting for scrollbar line)
 	// and there's space for at least one row + scrollbar
 	if numParamRows > displayable && displayable > 0 {
 		displayable-- // Reserve one line for the scroll indicator
 	}
-	
-	if displayable < 0 { 
-		displayable = 0 
+
+	if displayable < 0 {
+		displayable = 0
 	}
 	if displayable > numParamRows {
-	    displayable = numParamRows
+		displayable = numParamRows
 	}
 	return displayable
 }
@@ -213,7 +210,8 @@ func (pc *ParamsContainer) ensureFocusedInputVisible() {
 		pc.scrollOffset = 0
 	}
 	maxScrollOffset := numParamRows - numDisplayable
-	if maxScrollOffset < 0 { maxScrollOffset = 0} // handles case where numDisplayable > numParamRows
+
+	maxScrollOffset = max(maxScrollOffset, 0)
 	if pc.scrollOffset > maxScrollOffset {
 		pc.scrollOffset = maxScrollOffset
 	}
@@ -328,9 +326,8 @@ func (pc *ParamsContainer) View() string {
 	// Available width for the two text input columns (outer widths)
 	// This is pc.contentWidth (container content area) minus spacing between inputs.
 	inputsTotalOuterWidth := pc.contentWidth - spacingBetweenInputs
-	if inputsTotalOuterWidth < 0 { 
-		inputsTotalOuterWidth = 0 
-	}
+
+	inputsTotalOuterWidth = max(inputsTotalOuterWidth, 0)
 
 	var nameInputRenderWidth, valueInputRenderWidth int
 
@@ -341,12 +338,18 @@ func (pc *ParamsContainer) View() string {
 		nameInputRenderWidth = inputsTotalOuterWidth / 2
 		valueInputRenderWidth = inputsTotalOuterWidth - nameInputRenderWidth
 	}
-	
-	if nameInputRenderWidth < 0 { nameInputRenderWidth = 0 }
-	if valueInputRenderWidth < 0 { valueInputRenderWidth = 0 }
-	
+
+	if nameInputRenderWidth < 0 {
+		nameInputRenderWidth = 0
+	}
+	if valueInputRenderWidth < 0 {
+		valueInputRenderWidth = 0
+	}
+
 	actualContentWidth := pc.contentWidth // Used for separator, scroll indicator and help text
-	if actualContentWidth < 0 { actualContentWidth = 0 }
+	if actualContentWidth < 0 {
+		actualContentWidth = 0
+	}
 
 	header := lipgloss.JoinHorizontal(lipgloss.Top,
 		lipgloss.NewStyle().Width(nameInputRenderWidth).Render(labelStyle.Render(nameLabel)),
@@ -364,10 +367,12 @@ func (pc *ParamsContainer) View() string {
 	if endRow > numParamRows {
 		endRow = numParamRows
 	}
-	if startRow > endRow { startRow = endRow }
+	if startRow > endRow {
+		startRow = endRow
+	}
 
 	for i := startRow; i < endRow; i++ {
-		nameView := pc.Inputs[i].NameInput.View() // Content for name input
+		nameView := pc.Inputs[i].NameInput.View()   // Content for name input
 		valueView := pc.Inputs[i].ValueInput.View() // Content for value input
 
 		// rowStyle := lipgloss.NewStyle() // Removed background highlight
@@ -379,7 +384,7 @@ func (pc *ParamsContainer) View() string {
 		inputBoxBaseStyle := lipgloss.NewStyle()
 
 		// Style for the name input box
-		nameBoxStyle := inputBoxBaseStyle.Copy().
+		nameBoxStyle := inputBoxBaseStyle.
 			Width(nameInputRenderWidth).
 			BorderForeground(styles.SecondaryColor)
 		if nameInputRenderWidth >= 3 {
@@ -389,7 +394,7 @@ func (pc *ParamsContainer) View() string {
 		} // else no border if width is 0
 
 		// Style for the value input box
-		valueBoxStyle := inputBoxBaseStyle.Copy().
+		valueBoxStyle := inputBoxBaseStyle.
 			Width(valueInputRenderWidth).
 			BorderForeground(styles.SecondaryColor)
 		if valueInputRenderWidth >= 3 {
@@ -406,7 +411,7 @@ func (pc *ParamsContainer) View() string {
 				valueBoxStyle = valueBoxStyle.BorderForeground(styles.PrimaryColor)
 			}
 		}
-		
+
 		styledNameView := nameBoxStyle.Render(nameView)
 		styledValueView := valueBoxStyle.Render(valueView)
 
@@ -416,7 +421,7 @@ func (pc *ParamsContainer) View() string {
 			styledValueView,
 		)
 		// rows = append(rows, rowStyle.Render(rowRender)) // Render without the rowStyle background
-		rows = append(rows, rowRender) 
+		rows = append(rows, rowRender)
 	}
 
 	if numParamRows > numDisplayable && numDisplayable > 0 {
@@ -443,7 +448,6 @@ func (pc *ParamsContainer) View() string {
 	// It might be better to let it wrap or truncate based on lipgloss behavior if Width is set.
 	// For now, just render it. If actualContentWidth is too small, it will be truncated by the container.
 	rows = append(rows, helpTextStyle.Width(actualContentWidth).Render(helpText))
-
 
 	containerContent := lipgloss.JoinVertical(lipgloss.Left, rows...)
 
@@ -492,4 +496,3 @@ func (pc *ParamsContainer) IsAnyInputFocused() bool {
 	}
 	return pc.Inputs[pc.focusedRow].ValueInput.Focused()
 }
-

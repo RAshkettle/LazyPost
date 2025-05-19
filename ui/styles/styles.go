@@ -18,51 +18,47 @@ var (
 	// Border Styles
 	// Standard border style for inactive components
 	BorderStyle = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(SecondaryColor)
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(SecondaryColor)
 
 	// Border style for active/focused components
-	ActiveBorderStyle = BorderStyle.Copy().
-		BorderForeground(PrimaryColor)
+	ActiveBorderStyle = BorderStyle.
+				BorderForeground(PrimaryColor)
 
 	// Text Styles
 	// General title style for components
 	TitleStyle = lipgloss.NewStyle().
-		Foreground(SecondaryColor).
-		Bold(true)
+			Foreground(SecondaryColor).
+			Bold(true)
 
 	// Title style specific for URL components
 	URLTitleStyle = lipgloss.NewStyle().
-		Foreground(URLColor).
-		Bold(true)
+			Foreground(URLColor).
+			Bold(true)
 
 	// Title style specific for Method components
 	MethodTitleStyle = lipgloss.NewStyle().
-		Foreground(MethodColor).
-		Bold(true)
+				Foreground(MethodColor).
+				Bold(true)
 
 	// Style for selected items in lists or dropdowns
 	SelectedItemStyle = lipgloss.NewStyle().
-		Foreground(BrightYellow).
-		Bold(true)
+				Foreground(BrightYellow).
+				Bold(true)
 
 		// Create warning style
 	ToastStyle = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#FFD700")). // Gold border
-		Foreground(lipgloss.Color("#FFFFFF")).       // White text
-		Background(lipgloss.Color("#A52A2A")).       // Brown-red background
-		Padding(0, 1).                               // Add some padding
-		Align(lipgloss.Center, lipgloss.Center).     // Center content                             // Use the specified width
-		Bold(true)  // Make the text bold
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#FFD700")). // Gold border
+			Foreground(lipgloss.Color("#FFFFFF")).       // White text
+			Background(lipgloss.Color("#A52A2A")).       // Brown-red background
+			Padding(0, 1).                               // Add some padding
+			Align(lipgloss.Center, lipgloss.Center).     // Center content                             // Use the specified width
+			Bold(true)                                   // Make the text bold
 
-		HelpStyle = lipgloss.NewStyle().
+	HelpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFFF00")). // Yellow color
 			Align(lipgloss.Right).
-			Bold(true)                           // Make it bold
+			Bold(true) // Make it bold
 
-
-
-
-
-	)
+)

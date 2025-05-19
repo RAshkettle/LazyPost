@@ -216,7 +216,7 @@ func TestURLPerformance(t *testing.T) {
 	iterations := 10000
 
 	t.Run("Performance", func(t *testing.T) {
-		for i := 0; i < iterations; i++ {
+		for range iterations {
 			validateURL(url)
 		}
 		// No assertions here, this just validates that the function can handle

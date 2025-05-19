@@ -82,8 +82,12 @@ func (a *App) handleSubmit() tea.Cmd {
 					Error: err,
 				}
 			}
-
-			defer resp.Body.Close()
+			defer func() {
+				err := resp.Body.Close()
+				if err != nil {
+					fmt.Println("failure to close body")
+				}
+			}()
 
 			// Process response headers
 			var headersContent strings.Builder
