@@ -109,6 +109,13 @@ type Theme struct {
 	DropdownTextStyle   lipgloss.Style
 	DropdownArrowStyle  lipgloss.Style
 	ToastStyle          lipgloss.Style
+
+	// New fields for additional colors and styles
+	HelpTextColor          lipgloss.Color // Color for help text
+	ErrorStyle          lipgloss.Style
+	SuccessStyle        lipgloss.Style
+	SpinnerStyle        lipgloss.Style
+	HelpTextStyle       lipgloss.Style // New style for help text
 }
 
 // DefaultTheme is the instance of Theme with default styles
@@ -133,4 +140,11 @@ var DefaultTheme = Theme{
 	DropdownTextStyle:   DropdownTextStyle,
 	DropdownArrowStyle:  DropdownArrowStyle,
 	ToastStyle:          ToastStyle,
+
+	// Initialize new fields
+	HelpTextColor:          lipgloss.Color("#E5C07B"), // Yellow for help text
+	ErrorStyle:          lipgloss.NewStyle().Foreground(ErrorColor),
+	SuccessStyle:        lipgloss.NewStyle().Foreground(BrightYellow),
+	SpinnerStyle:        lipgloss.NewStyle().Foreground(PrimaryColor),
+	HelpTextStyle:       lipgloss.NewStyle().Foreground(lipgloss.Color("#E5C07B")), // Yellow for help text
 }

@@ -55,6 +55,12 @@ func (a *App) handleSubmit() tea.Cmd {
 	// Get headers from HeadersInputContainer via QueryTab
 	headers := a.tabContainer.GetQueryTab().HeadersInput.GetHeaders()
 
+	// Get auth headers from AuthContainer via QueryTab
+	authHeaders := a.tabContainer.GetQueryTab().AuthInput.GetAuthHeaders()
+	for key, value := range authHeaders {
+		headers[key] = value // Add or overwrite headers with auth headers
+	}
+
 	// Return a command that will execute the HTTP request asynchronously
 	return tea.Batch(
 		spinnerCmd,

@@ -1,6 +1,7 @@
 package components
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/RAshkettle/LazyPost/ui/styles"
@@ -423,10 +424,47 @@ func (ac AuthContainer) View() string {
 	return outerFrame.Render(finalInnerContent)
 }
 
-// GetAuthHeaders returns the authentication headers based on the selected type and inputs. (Placeholder)
+// GetAuthHeaders returns the authentication headers based on the selected type and inputs.
 func (ac AuthContainer) GetAuthHeaders() map[string]string {
-	// TODO: Implement logic based on authSelector.selectedIndex and future input fields
-	return nil
+	headers := make(map[string]string)
+	selectedType := ac.authSelector.options[ac.authSelector.selectedIndex]
+
+	switch selectedType {
+	case "Basic":
+		username, password := ac.basicAuthDetails.GetValues()
+		if username != "" || password != "" { // Only add header if there's a username or password
+			auth := username + ":" + password
+			headers["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
+		}
+	case "Bearer":
+		// TODO: Implement Bearer token retrieval from tokenAuthDetails
+		// token := ac.tokenAuthDetails.GetValue()
+		// if token != "" {
+		// 	headers["Authorization"] = "Bearer " + token
+		// }
+	case "JWT":
+		// TODO: Implement JWT retrieval from jwtAuthDetails
+		// jwt := ac.jwtAuthDetails.GetValue()
+		// if jwt != "" {
+		// 	headers["Authorization"] = "Bearer " + jwt // Typically Bearer for JWT too
+		// }
+	case "API Key":
+		// TODO: Implement API Key retrieval and header construction from apiKeyAuthDetails
+		// e.g., headerName, headerValue, addTo := ac.apiKeyAuthDetails.GetValues()
+		// if headerName != "" && headerValue != "" {
+		// 	 if addTo == "header" { headers[headerName] = headerValue } ... else if query etc.
+		// }
+	case "OAuth2":
+		// TODO: Implement OAuth2 token retrieval from oauth2AuthDetails
+		// This will likely be more complex, involving a token that might be stored
+		// accessToken := ac.oauth2AuthDetails.GetAccessToken()
+		// if accessToken != "" {
+		// 	headers["Authorization"] = "Bearer " + accessToken
+		// }
+	case "None":
+		// No headers to add
+	}
+	return headers
 }
 
 // IsFocused checks if the AuthContainer or its components are focused. (Placeholder)
