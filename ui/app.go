@@ -112,24 +112,42 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool,  te
 		return nil, true,  nil
 	}
 
+	// Check for Alt key + rune combinations first if key.Matches fails for standard "alt+<key>"
+	// This is to handle terminals that send runes directly for Alt combinations.
+	if msg.Type == tea.KeyRunes && len(msg.Runes) == 1 {
+		switch msg.Runes[0] {
+		case '¡': // Rune for Alt+1 (FocusMethod)
+			a.setFocus(focusMethod)
+			return nil, true, nil
+		case '™': // Rune for Alt+2 (FocusURL) - was Alt+5
+			a.setFocus(focusURL)
+			return nil, true, nil
+		case '£': // Rune for Alt+3 (FocusQuery) - was Alt+4
+			a.setFocus(focusQuery)
+			return nil, true, nil
+		case '¢': // Rune for Alt+4 (FocusResult) - was Alt+3
+			a.setFocus(focusResult)
+			return nil, true, nil
+		case '∞': // Rune for Alt+5 (FocusSubmit) - was Alt+2
+			cmd := a.handleSubmit()
+			return nil, true, cmd
+		// Add other specific rune checks if needed for other Alt combinations
+		}
+	}
+
+
 	switch {
 	case key.Matches(msg, a.keymap.Quit):
 		return nil, true,  tea.Quit
 
 	case key.Matches(msg, a.keymap.FocusMethod):
 		// Focus method selector
-		a.methodSelector.SetActive(true)
-		a.urlInput.SetActive(false)
-		a.submitButton.SetActive(false)
-		a.tabContainer.SetActive(false)
+		a.setFocus(focusMethod)
 		return nil, true,  nil
 
 	case key.Matches(msg, a.keymap.FocusURL):
 		// Focus URL input
-		a.methodSelector.SetActive(false)
-		a.urlInput.SetActive(true)
-		a.submitButton.SetActive(false)
-		a.tabContainer.SetActive(false)
+		a.setFocus(focusURL)
 		return nil, true,  nil
 
 	case key.Matches(msg, a.keymap.FocusSubmit):
@@ -139,20 +157,12 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool,  te
 
 	case key.Matches(msg, a.keymap.FocusQuery):
 		// Switch to Query tab
-		a.tabContainer.SwitchToTab(0)
-		a.methodSelector.SetActive(false)
-		a.urlInput.SetActive(false)
-		a.submitButton.SetActive(false)
-		a.tabContainer.SetActive(true)
+		a.setFocus(focusQuery)
 		return nil, true,  nil
 
 	case key.Matches(msg, a.keymap.FocusResult):
 		// Switch to Result tab
-		a.tabContainer.SwitchToTab(1)
-		a.methodSelector.SetActive(false)
-		a.urlInput.SetActive(false)
-		a.submitButton.SetActive(false)
-		a.tabContainer.SetActive(true)
+		a.setFocus(focusResult)
 		return nil, true,  nil
 
 	case key.Matches(msg, a.keymap.Next), key.Matches(msg, a.keymap.Prev):
@@ -210,6 +220,42 @@ func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool,  te
 
 	}
 	return cmds, false,  nil
+}
+
+// Helper type for focusing
+type focusTarget int
+
+const (
+	focusMethod focusTarget = iota
+	focusURL
+	focusSubmit // Though submit is an action, it might imply focus change before action
+	focusQuery
+	focusResult
+	focusNone // No specific component, or handled by child
+)
+
+// setFocus is a helper function to manage focus state changes.
+func (a *App) setFocus(target focusTarget) {
+	// Reset all focusable components
+	a.methodSelector.SetActive(false)
+	a.urlInput.SetActive(false)
+	a.submitButton.SetActive(false) // Submit button doesn't really take focus in the same way
+	a.tabContainer.SetActive(false)
+
+	switch target {
+	case focusMethod:
+		a.methodSelector.SetActive(true)
+	case focusURL:
+		a.urlInput.SetActive(true)
+		a.urlInput.TextInput.Focus() // Ensure text input cursor is active
+	case focusQuery:
+		a.tabContainer.SwitchToTab(0) // Query tab is index 0
+		a.tabContainer.SetActive(true)
+	case focusResult:
+		a.tabContainer.SwitchToTab(1) // Result tab is index 1
+		a.tabContainer.SetActive(true)
+	// focusSubmit is handled by handleSubmit directly
+	}
 }
 
 func(a *App) handleWindowSizeMsg(msg tea.WindowSizeMsg) {
