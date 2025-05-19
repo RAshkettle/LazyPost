@@ -170,7 +170,8 @@ type AuthContainer struct {
 
 	// Detail components
 	basicAuthDetails   BasicAuthDetailsComponent
-	tokenAuthDetails   TokenAuthDetailsComponent
+	tokenAuthDetails   TokenAuthDetailsComponent // For Bearer
+	jwtAuthDetails     JWTAuthDetailsComponent   // For JWT
 	apiKeyAuthDetails  APIKeyAuthDetailsComponent
 	oauth2AuthDetails  OAuth2AuthDetailsComponent
 }
@@ -187,6 +188,7 @@ func NewAuthContainer() AuthContainer {
 
 		basicAuthDetails:  NewBasicAuthDetailsComponent(),
 		tokenAuthDetails:  NewTokenAuthDetailsComponent(),
+		jwtAuthDetails:    NewJWTAuthDetailsComponent(), // Initialize new component
 		apiKeyAuthDetails: NewAPIKeyAuthDetailsComponent(),
 		oauth2AuthDetails: NewOAuth2AuthDetailsComponent(),
 	}
@@ -213,6 +215,7 @@ func (ac *AuthContainer) SetActive(active bool) {
 	// Deactivate all detail components first
 	ac.basicAuthDetails.SetActive(false)
 	ac.tokenAuthDetails.SetActive(false)
+	ac.jwtAuthDetails.SetActive(false) // Deactivate new component
 	ac.apiKeyAuthDetails.SetActive(false)
 	ac.oauth2AuthDetails.SetActive(false)
 
@@ -223,8 +226,10 @@ func (ac *AuthContainer) SetActive(active bool) {
 		switch selectedType {
 		case "Basic":
 			ac.basicAuthDetails.SetActive(true)
-		case "Bearer", "JWT":
+		case "Bearer": // Explicitly Bearer
 			ac.tokenAuthDetails.SetActive(true)
+		case "JWT": // New case for JWT
+			ac.jwtAuthDetails.SetActive(true)
 		case "API Key":
 			ac.apiKeyAuthDetails.SetActive(true)
 		case "OAuth2":
@@ -264,9 +269,13 @@ func (ac *AuthContainer) Update(msg tea.Msg) tea.Cmd {
 		if ac.basicAuthDetails.active { // Check if it's supposed to be active
 			detailCmd = ac.basicAuthDetails.Update(msg)
 		}
-	case "Bearer", "JWT":
+	case "Bearer": // Explicitly Bearer
 		if ac.tokenAuthDetails.active {
 			detailCmd = ac.tokenAuthDetails.Update(msg)
+		}
+	case "JWT": // New case for JWT
+		if ac.jwtAuthDetails.active {
+			detailCmd = ac.jwtAuthDetails.Update(msg)
 		}
 	case "API Key":
 		if ac.apiKeyAuthDetails.active {
@@ -370,10 +379,14 @@ func (ac AuthContainer) View() string {
 			// ac.basicAuthDetails.SetActive(ac.Active) // Active state set in AuthContainer.SetActive
 			ac.basicAuthDetails.SetSize(trueInnerWidth, detailComponentHeight)
 			detailViewContent = ac.basicAuthDetails.View()
-		case "Bearer", "JWT":
+		case "Bearer": // Explicitly Bearer
 			// ac.tokenAuthDetails.SetActive(ac.Active)
 			ac.tokenAuthDetails.SetSize(trueInnerWidth, detailComponentHeight)
 			detailViewContent = ac.tokenAuthDetails.View()
+		case "JWT": // New case for JWT
+			// ac.jwtAuthDetails.SetActive(ac.Active)
+			ac.jwtAuthDetails.SetSize(trueInnerWidth, detailComponentHeight)
+			detailViewContent = ac.jwtAuthDetails.View()
 		case "API Key":
 			// ac.apiKeyAuthDetails.SetActive(ac.Active)
 			ac.apiKeyAuthDetails.SetSize(trueInnerWidth, detailComponentHeight)

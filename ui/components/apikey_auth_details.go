@@ -27,9 +27,9 @@ func (c APIKeyAuthDetailsComponent) View() string {
 	if c.width <= 0 || c.height <= 0 {
 		return ""
 	}
-	style := styles.DefaultTheme.BorderStyle.Copy().Width(c.width).Height(c.height)
+	style := styles.DefaultTheme.BorderStyle.Width(c.width).Height(c.height)
 	if c.active {
-		style = styles.DefaultTheme.ActiveBorderStyle.Copy().Width(c.width).Height(c.height)
+		style = styles.DefaultTheme.ActiveBorderStyle.Width(c.width).Height(c.height)
 	}
-	return style.Render(fmt.Sprintf("API Key Auth Details\nWidth: %d, Height: %d", c.width, c.height))
+	return style.Render(fmt.Sprintf("API Key Auth Details"))
 }
