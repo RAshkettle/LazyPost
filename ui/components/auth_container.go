@@ -162,12 +162,17 @@ func (as *AuthSelector) Update(msg tea.Msg) tea.Cmd {
 
 // AuthContainer encapsulates the AuthSelector and manages the "Authentication" section.
 type AuthContainer struct {
-	Width          int    // Width of the component in characters
-	Height         int    // Height of the component in characters
-	Active         bool   // If the container or its children are focused
+	Width          int
+	Height         int
+	Active         bool
 	authSelector   AuthSelector
 	titleStyle     lipgloss.Style
-	// Removed ac.containerStyle, will use BorderStyle/ActiveBorderStyle directly
+
+	// Detail components
+	basicAuthDetails   BasicAuthDetailsComponent
+	tokenAuthDetails   TokenAuthDetailsComponent
+	apiKeyAuthDetails  APIKeyAuthDetailsComponent
+	oauth2AuthDetails  OAuth2AuthDetailsComponent
 }
 
 // NewAuthContainer creates a new AuthContainer.
@@ -179,36 +184,104 @@ func NewAuthContainer() AuthContainer {
 		Active:         false,
 		authSelector:   selector,
 		titleStyle:     styles.DefaultTheme.TitleStyle.Copy(),
+
+		basicAuthDetails:  NewBasicAuthDetailsComponent(),
+		tokenAuthDetails:  NewTokenAuthDetailsComponent(),
+		apiKeyAuthDetails: NewAPIKeyAuthDetailsComponent(),
+		oauth2AuthDetails: NewOAuth2AuthDetailsComponent(),
 	}
 }
 
 // SetWidth sets the width of the AuthContainer.
 func (ac *AuthContainer) SetWidth(width int) {
 	ac.Width = width
+	// Child components' widths will be set during View rendering or specific focus changes.
 }
 
 // SetHeight sets the height of the AuthContainer.
 func (ac *AuthContainer) SetHeight(height int) {
 	ac.Height = height
+	// Child components' heights will be set during View rendering.
 }
 
 // SetActive sets the active state of the AuthContainer and its focusable children.
 func (ac *AuthContainer) SetActive(active bool) {
 	ac.Active = active
-	// For now, if the container is active, the selector is also made active.
-	// More complex focus logic might be needed if more elements are added.
+	// The authSelector is always potentially interactive if the container is active.
 	ac.authSelector.SetActive(active)
+
+	// Deactivate all detail components first
+	ac.basicAuthDetails.SetActive(false)
+	ac.tokenAuthDetails.SetActive(false)
+	ac.apiKeyAuthDetails.SetActive(false)
+	ac.oauth2AuthDetails.SetActive(false)
+
+	if active {
+		// If the container is active, the selected detail component (if any) should also be marked active.
+		// This doesn't mean it has primary focus, just that it's the one to interact with if focus moves there.
+		selectedType := ac.authSelector.options[ac.authSelector.selectedIndex]
+		switch selectedType {
+		case "Basic":
+			ac.basicAuthDetails.SetActive(true)
+		case "Bearer", "JWT":
+			ac.tokenAuthDetails.SetActive(true)
+		case "API Key":
+			ac.apiKeyAuthDetails.SetActive(true)
+		case "OAuth2":
+			ac.oauth2AuthDetails.SetActive(true)
+		}
+	}
 }
 
 // Update handles messages for the AuthContainer.
 func (ac *AuthContainer) Update(msg tea.Msg) tea.Cmd {
-	if ac.Active { // Only delegate to authSelector if the container is active
-		// If there were multiple focusable elements in AuthContainer,
-		// we'd need to check which one has focus before delegating.
-		// For now, if AuthContainer is active, AuthSelector is the active element.
-		return ac.authSelector.Update(msg)
+	var cmds []tea.Cmd
+
+	if !ac.Active {
+		return nil
 	}
-	return nil
+
+	// Priority 1: AuthSelector, especially if open or specific key presses
+	// The selector's Update method already checks its own 'active' state,
+	// but we ensure it only gets messages if AuthContainer itself is active.
+	selectorCmd := ac.authSelector.Update(msg)
+	if selectorCmd != nil {
+		cmds = append(cmds, selectorCmd)
+	}
+
+	// If selector made a selection, we might need to change active detail component
+	// This is implicitly handled by SetActive being called from QueryTab or App,
+	// or by re-evaluating in View. For now, direct selection reaction is minimal here.
+	// The main thing is that authSelector.selectedIndex has changed.
+	// We should ensure the correct detail component is marked active.
+	ac.SetActive(ac.Active) // Re-evaluate active detail component
+
+	// Detail component updates: Check which detail component should be active based on selection
+	selectedType := ac.authSelector.options[ac.authSelector.selectedIndex]
+	var detailCmd tea.Cmd
+	switch selectedType {
+	case "Basic":
+		if ac.basicAuthDetails.active { // Check if it's supposed to be active
+			detailCmd = ac.basicAuthDetails.Update(msg)
+		}
+	case "Bearer", "JWT":
+		if ac.tokenAuthDetails.active {
+			detailCmd = ac.tokenAuthDetails.Update(msg)
+		}
+	case "API Key":
+		if ac.apiKeyAuthDetails.active {
+			detailCmd = ac.apiKeyAuthDetails.Update(msg)
+		}
+	case "OAuth2":
+		if ac.oauth2AuthDetails.active {
+			detailCmd = ac.oauth2AuthDetails.Update(msg)
+		}
+	}
+	if detailCmd != nil {
+		cmds = append(cmds, detailCmd)
+	}
+
+	return tea.Batch(cmds...)
 }
 
 // View renders the AuthContainer.
@@ -227,51 +300,103 @@ func (ac AuthContainer) View() string {
 	outerFrame := currentFrameStyle.
 		Width(ac.Width).
 		Height(ac.Height).
-		Padding(0, 1) // Padding between frame and inner content
+		Padding(0, 1)
 
 	trueInnerWidth := ac.Width - outerFrame.GetHorizontalFrameSize()
 	trueInnerHeight := ac.Height - outerFrame.GetVerticalFrameSize()
-	if trueInnerWidth < 0 { trueInnerWidth = 0 }
-	if trueInnerHeight < 0 { trueInnerHeight = 0 }
+	if trueInnerWidth < 0 {
+		trueInnerWidth = 0
+	}
+	if trueInnerHeight < 0 {
+		trueInnerHeight = 0
+	}
 
 	var contentLines []string
 
-	// Line 1: Title "Authentication" - REMOVED
-	// if trueInnerHeight > 0 {
-	// 	titleRendered := ac.titleStyle.Render("Authentication")
-	// 	titleLine := lipgloss.NewStyle().Width(trueInnerWidth).Render(titleRendered)
-	// 	contentLines = append(contentLines, titleLine)
-	// }
+	// Part 1: AuthSelector
+	// Use a mutable copy of the selector to set width for rendering
+	tempSelector := ac.authSelector
+	tempSelector.SetWidth(30) // Fixed width for AuthSelector
+	// The active state of ac.authSelector is managed by AuthContainer.SetActive
+	selectorView := tempSelector.View() // This can be a multi-line block if dropdown is open
+	
+	// Render the selectorView.
+	contentLines = append(contentLines, lipgloss.NewStyle().Width(trueInnerWidth).Render(selectorView))
+	
+	currentContentHeight := lipgloss.Height(selectorView)
+	
+	// Part 2: Spacing (3 lines)
+	spacingHeight := 3
+	if trueInnerHeight > currentContentHeight && spacingHeight > 0 {
+		if currentContentHeight+spacingHeight > trueInnerHeight {
+			spacingHeight = trueInnerHeight - currentContentHeight
+		}
+		if spacingHeight > 0 {
+			spacingBlock := lipgloss.NewStyle().Width(trueInnerWidth).Height(spacingHeight).Render("")
+			contentLines = append(contentLines, spacingBlock)
+			currentContentHeight += spacingHeight
+		}
+	}
 
-	// Line 2 (now Line 1): "Type: " label + AuthSelector
-	// Ensure there's enough height for at least one line of content.
-	if trueInnerHeight > 0 { // Adjusted condition to check if any space is available
-		// label := "Type: " // REMOVED
-		// labelWidth := lipgloss.Width(label) // REMOVED
-		// labelPart := lipgloss.NewStyle().Width(labelWidth).Render(label) // REMOVED
-		
-		selectorWidth := 30 // FIXED WIDTH for AuthSelector
-		// selectorWidth := trueInnerWidth // OLD: AuthSelector now takes full inner width
+	// Part 3: Auth Detail Sub-Container
+	detailViewContent := ""
+	selectedType := ac.authSelector.options[ac.authSelector.selectedIndex]
+	
+	detailComponentHeight := trueInnerHeight - currentContentHeight
+	if detailComponentHeight < 0 {
+		detailComponentHeight = 0
+	}
 
-		// Use a mutable copy of the selector to set width for rendering
-		tempSelector := ac.authSelector 
-		tempSelector.SetWidth(selectorWidth) // Set the fixed width
-		// The active state of ac.authSelector is managed by AuthContainer.SetActive
-		selectorView := tempSelector.View() // This can be a multi-line block if dropdown is open
+	// Create mutable copies of detail components to set size and get view
+	// This is a bit clunky; ideally, SetSize would be called less frequently,
+	// or View would take size parameters. For now, this matches the pattern.
+	// The active state is already set by ac.SetActive().
+	
+	// Make a non-pointer copy for view rendering if needed, or ensure methods are value receivers
+	// For components like BasicAuthDetailsComponent, since SetSize modifies them,
+	// we need to be careful if ac is a value receiver in View.
+	// Let's assume these components are simple enough for now.
+	// To be safe, we should use pointers or ensure methods handle this.
+	// For this iteration, we'll proceed with direct field access/modification on ac's fields.
+	// This means AuthContainer methods that modify children (like SetSize on them) should take *AuthContainer.
 
-		// Render the selectorView. If trueInnerWidth is greater than selectorWidth (30),
-		// the selectorView will be left-aligned within the available trueInnerWidth.
-		// If trueInnerWidth is less than 30, selectorView will be clipped by this rendering step.
-		contentLines = append(contentLines, lipgloss.NewStyle().Width(trueInnerWidth).Render(selectorView))
+	// To ensure `SetSize` calls modify the actual components within `ac`,
+	// we'll call them on `ac.basicAuthDetails` etc. directly.
+	// The `View` methods of these components are value receivers, so they won't modify.
+
+	if detailComponentHeight > 0 {
+		switch selectedType {
+		case "Basic":
+			// ac.basicAuthDetails.SetActive(ac.Active) // Active state set in AuthContainer.SetActive
+			ac.basicAuthDetails.SetSize(trueInnerWidth, detailComponentHeight)
+			detailViewContent = ac.basicAuthDetails.View()
+		case "Bearer", "JWT":
+			// ac.tokenAuthDetails.SetActive(ac.Active)
+			ac.tokenAuthDetails.SetSize(trueInnerWidth, detailComponentHeight)
+			detailViewContent = ac.tokenAuthDetails.View()
+		case "API Key":
+			// ac.apiKeyAuthDetails.SetActive(ac.Active)
+			ac.apiKeyAuthDetails.SetSize(trueInnerWidth, detailComponentHeight)
+			detailViewContent = ac.apiKeyAuthDetails.View()
+		case "OAuth2":
+			// ac.oauth2AuthDetails.SetActive(ac.Active)
+			ac.oauth2AuthDetails.SetSize(trueInnerWidth, detailComponentHeight)
+			detailViewContent = ac.oauth2AuthDetails.View()
+		case "None":
+			// No detail view for "None"
+			detailViewContent = ""
+		}
+		if detailViewContent != "" {
+			contentLines = append(contentLines, detailViewContent)
+		}
 	}
 	
-	// Build the main content block from what we have so far.
 	innerContentBlock := lipgloss.JoinVertical(lipgloss.Left, contentLines...)
 
-	// Calculate padding needed to fill the rest of the trueInnerHeight.
+	// Final padding for the entire container if needed
 	paddingHeight := trueInnerHeight - lipgloss.Height(innerContentBlock)
-	if paddingHeight < 0 { 
-		paddingHeight = 0 // Content is already taller than the container.
+	if paddingHeight < 0 {
+		paddingHeight = 0
 	}
 
 	var finalInnerContent string
@@ -279,7 +404,7 @@ func (ac AuthContainer) View() string {
 		paddingBlock := lipgloss.NewStyle().Width(trueInnerWidth).Height(paddingHeight).Render("")
 		finalInnerContent = lipgloss.JoinVertical(lipgloss.Left, innerContentBlock, paddingBlock)
 	} else {
-		finalInnerContent = innerContentBlock // No padding needed, or content overflows.
+		finalInnerContent = innerContentBlock
 	}
 	
 	return outerFrame.Render(finalInnerContent)
