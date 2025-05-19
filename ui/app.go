@@ -103,7 +103,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	return a, tea.Batch(cmds...)
 }
-
+//This refactor sucks much.  However, it's working so I'm just going to leave it for now.
+//TODO: FIX THIS SHIT
 func (a *App) handleKeyMsg(msg tea.KeyMsg, cmds []tea.Cmd) ([]tea.Cmd, bool, tea.Cmd) {
 	if a.toast.Visible && msg.String() == "enter" {
 		// Dismiss the toast and focus the URL input

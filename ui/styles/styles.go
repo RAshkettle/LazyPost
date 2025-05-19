@@ -56,9 +56,4 @@ var (
 			Align(lipgloss.Center, lipgloss.Center).     // Center content                             // Use the specified width
 			Bold(true)                                   // Make the text bold
 
-	HelpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFFF00")). // Yellow color
-			Align(lipgloss.Right).
-			Bold(true) // Make it bold
-
 )
