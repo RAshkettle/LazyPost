@@ -1,3 +1,4 @@
+// Package components defines various UI components for the LazyPost application.
 package components
 
 import (
@@ -7,29 +8,27 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// QueryTab represents the inner tab component for the Query tab.
-// It provides a tabbed interface for configuring different aspects of an HTTP request
-// including parameters, authentication, headers, and body.
-// The component handles tab navigation via Tab/Shift+Tab keys.
+// QueryTab represents the main interactive area for constructing an HTTP request.
+// It contains several inner tabs (Params, Auth, Headers, Body) allowing the user
+// to configure different parts of the request. It manages focus between these inner tabs
+// and delegates interactions to the active inner component.
 type QueryTab struct {
-	InnerTabs      []string        // Labels for the inner tabs
-	ActiveInnerTab int             // Index of the currently active inner tab
-	Width          int             // Width of the component in characters
-	Height         int             // Height of the component in characters
-	Active         bool            // Whether the component is currently active/focused
-	ParamsInput    ParamsContainer // Container for parameter inputs
-	AuthInput      AuthContainer   // Container for authentication inputs
-	HeadersInput   HeadersInputContainer // Container for header inputs
-	QueryBodyInput textarea.Model  // Textarea for request body input
+	InnerTabs      []string              // InnerTabs stores the labels for the switchable inner sections (e.g., "Params", "Auth").
+	ActiveInnerTab int                   // ActiveInnerTab is the index of the currently visible and interactive inner tab.
+	Width          int                   // Width is the rendering width of the entire QueryTab component.
+	Height         int                   // Height is the rendering height of the entire QueryTab component.
+	Active         bool                  // Active indicates if the QueryTab itself (and thus its active inner tab) is focused.
+	ParamsInput    ParamsContainer       // ParamsInput is the component for managing URL query parameters.
+	AuthInput      AuthContainer         // AuthInput is the component for managing authentication settings.
+	HeadersInput   HeadersInputContainer // HeadersInput is the component for managing request headers.
+	QueryBodyInput textarea.Model        // QueryBodyInput is the text area for inputting the request body.
 
-	// Placeholder content for other tabs
-	// authContent    string // No longer needed
+	// headersContent was a placeholder, now HeadersInput component is used.
 	headersContent string // This might still be used if Headers tab is not fully componentized
 }
 
-// NewQueryTab creates a new query tab component with predefined inner tabs.
-// The component is initialized with the "Params" tab selected, zero dimensions,
-// and inactive state. Each inner tab has default placeholder content.
+// NewQueryTab creates and initializes a new QueryTab component.
+// It sets up the inner tabs and their corresponding child components (ParamsContainer, AuthContainer, etc.).
 func NewQueryTab() QueryTab {
 	// authContent := "Configure authentication settings here." // No longer needed
 	headersContent := "Configure request headers here."
@@ -57,7 +56,8 @@ func NewQueryTab() QueryTab {
 	}
 }
 
-// SetWidth sets the width of the component in characters.
+// SetWidth sets the rendering width for the QueryTab and propagates it to its child components.
+// The width is adjusted for borders and padding before being passed to children.
 func (q *QueryTab) SetWidth(width int) {
 	q.Width = width
 	innerContainerBorderStyle := styles.BorderStyle
@@ -80,7 +80,8 @@ func (q *QueryTab) SetWidth(width int) {
 	q.QueryBodyInput.SetWidth(queryBodyInputWidth)
 }
 
-// SetHeight sets the height of the component in characters.
+// SetHeight sets the rendering height for the QueryTab and propagates it to its child components.
+// The height is adjusted for the tab bar, borders, and padding before being passed to children.
 func (q *QueryTab) SetHeight(height int) {
 	q.Height = height
 	innerContainerHeight := q.Height - 2
@@ -108,13 +109,16 @@ func (q *QueryTab) SetHeight(height int) {
 	q.QueryBodyInput.SetHeight(queryBodyInputHeight)
 }
 
-// SetActive sets the active state of the component.
+// SetActive sets the active state of the QueryTab.
+// This also triggers an update to the focus state of its internal components.
 func (q *QueryTab) SetActive(active bool) {
 	q.Active = active
 	q.updateFocus()
 }
 
-// updateFocus manages focus for internal components based on active state and active inner tab.
+// updateFocus manages which internal component (Params, Auth, Headers, Body)
+// should be active and focused based on the QueryTab's overall active state
+// and the currently selected ActiveInnerTab.
 func (q *QueryTab) updateFocus() {
 	isParamsActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Params"
 	isAuthActive := q.Active && q.InnerTabs[q.ActiveInnerTab] == "Auth" // Check for Auth tab
@@ -149,7 +153,8 @@ func (q *QueryTab) updateFocus() {
 	}
 }
 
-// SwitchToInnerTab switches to the specified inner tab by index.
+// SwitchToInnerTab changes the active inner tab to the one specified by tabIndex.
+// It deactivates the previously active inner component and activates the new one.
 func (q *QueryTab) SwitchToInnerTab(tabIndex int) {
 	if tabIndex >= 0 && tabIndex < len(q.InnerTabs) {
 		currentActiveTabName := q.InnerTabs[q.ActiveInnerTab]
@@ -169,19 +174,22 @@ func (q *QueryTab) SwitchToInnerTab(tabIndex int) {
 	}
 }
 
-// NextTab cycles to the next inner tab.
+// NextTab cycles to the next inner tab in the sequence.
 func (q *QueryTab) NextTab() {
 	newTabIndex := (q.ActiveInnerTab + 1) % len(q.InnerTabs)
 	q.SwitchToInnerTab(newTabIndex)
 }
 
-// PrevTab cycles to the previous inner tab.
+// PrevTab cycles to the previous inner tab in the sequence.
 func (q *QueryTab) PrevTab() {
 	newTabIndex := (q.ActiveInnerTab - 1 + len(q.InnerTabs)) % len(q.InnerTabs)
 	q.SwitchToInnerTab(newTabIndex)
 }
 
-// Update processes input messages and updates the query tab state.
+// Update handles messages for the QueryTab.
+// It manages Tab/Shift+Tab navigation between inner tabs.
+// For other messages, it delegates to the Update method of the currently active inner component.
+// It ensures that components like the textarea receive necessary updates for cursor blinking even if not fully active.
 func (q *QueryTab) Update(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
@@ -258,7 +266,10 @@ func (q *QueryTab) Update(msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-// View renders the query tab component as a string for terminal display.
+// View renders the QueryTab component.
+// It displays a bar with inner tab labels, with the active tab highlighted.
+// Below the tab bar, it renders the View of the currently active inner component.
+// Help text is displayed at the bottom, contextual to the active inner tab and its state.
 func (q QueryTab) View() string {
 	if q.Width == 0 || q.Height == 0 {
 		return ""
@@ -414,12 +425,13 @@ func (q QueryTab) View() string {
 	)
 }
 
-// GetBodyContent returns the content of the query body input.
+// GetBodyContent returns the current content of the QueryBodyInput (request body text area).
 func (q *QueryTab) GetBodyContent() string {
 	return q.QueryBodyInput.Value()
 }
 
-// IsAnyInputFocused checks if any input within the QueryTab is focused.
+// IsAnyInputFocused checks if any interactive element within the currently active inner tab is focused.
+// This is used to determine context for keybindings or help text.
 func (q *QueryTab) IsAnyInputFocused() bool {
 	if q.InnerTabs[q.ActiveInnerTab] == "Params" && q.ParamsInput.IsAnyInputFocused() {
 		return true

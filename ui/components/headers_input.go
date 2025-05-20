@@ -10,35 +10,40 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// numHeaderRows defines the fixed number of header input rows in the HeadersInputContainer.
 const numHeaderRows = 9
 
-// HeaderInput represents a single row with a header select and value input.
+// HeaderInput represents a single row in the HeadersInputContainer.
+// It consists of a dropdown for selecting a header name and a text input for its value.
 type HeaderInput struct {
-	HeaderSelect      []string
-	SelectedHeader    int
-	DropdownOpen      bool
-	ValueInput        textinput.Model
-	width             int
-	headerSelectWidth int
-	valueInputWidth   int
+	HeaderSelect      []string        // HeaderSelect stores the list of available header names for the dropdown.
+	SelectedHeader    int             // SelectedHeader is the index of the currently selected header name in HeaderSelect.
+	DropdownOpen      bool            // DropdownOpen indicates whether the header name dropdown is currently visible.
+	ValueInput        textinput.Model // ValueInput is the text input field for the header value.
+	width             int             // width is the total width of this individual header input row (not currently used for individual styling but available).
+	headerSelectWidth int             // headerSelectWidth is the allocated width for the header selection part.
+	valueInputWidth   int             // valueInputWidth is the allocated width for the value input part.
 }
 
-// HeadersInputContainer holds multiple HeaderInput rows.
+// HeadersInputContainer manages a list of HeaderInput rows, allowing users to input multiple HTTP headers.
+// It handles focus navigation between rows and between the header name and value fields within a row.
+// It also provides functionality to retrieve all entered headers as a map.
 type HeadersInputContainer struct {
-	inputs          []HeaderInput
-	focusedRow      int
-	focusedInput    int  // 0 for HeaderSelect, 1 for ValueInput
-	Active          bool // Added to manage focus state of the container
-	width           int
-	height          int
-	showHelp        bool
-	helpText        string
-	headerLabel     string
-	valueLabel      string
-	baseHeaderStyle lipgloss.Style
-	baseValueStyle  lipgloss.Style
+	inputs          []HeaderInput  // inputs is the slice of HeaderInput rows.
+	focusedRow      int            // focusedRow is the index of the currently focused row.
+	focusedInput    int            // focusedInput indicates which part of the focused row has focus (0 for HeaderSelect, 1 for ValueInput).
+	Active          bool           // Active indicates if the container itself is focused and interactive.
+	width           int            // width is the total width of the container.
+	height          int            // height is the total height of the container.
+	showHelp        bool           // showHelp determines if the help text is displayed.
+	helpText        string         // helpText is the instructional message displayed to the user.
+	headerLabel     string         // headerLabel is the text label for the header name column.
+	valueLabel      string         // valueLabel is the text label for the header value column.
+	baseHeaderStyle lipgloss.Style // baseHeaderStyle is the base style for the header name input area.
+	baseValueStyle  lipgloss.Style // baseValueStyle is the base style for the header value input area.
 }
 
+// headerOptionsStrings provides a default list of common HTTP header names for the dropdown.
 var headerOptionsStrings = []string{
 	"Empty", "Accept", "Accept-Charset", "Accept-Encoding", "Accept-Language",
 	"Authorization", "Cache-Control", "Connection", "Content-Length",
@@ -49,7 +54,8 @@ var headerOptionsStrings = []string{
 	"X-Csrf-Token", "X-Request-ID", "X-Correlation-ID",
 }
 
-// NewHeadersInputContainer creates a new HeadersInputContainer with a predefined number of rows.
+// NewHeadersInputContainer creates and initializes a new HeadersInputContainer.
+// It pre-populates a fixed number of HeaderInput rows with default values and styles.
 func NewHeadersInputContainer() HeadersInputContainer {
 	inputs := make([]HeaderInput, numHeaderRows)
 	for i := range numHeaderRows {
@@ -91,7 +97,9 @@ func NewHeadersInputContainer() HeadersInputContainer {
 	}
 }
 
-// SetActive sets the active state of the headers input container.
+// SetActive sets the active state of the HeadersInputContainer.
+// When activated, it focuses the currently selected internal input field.
+// When deactivated, it blurs all internal input fields.
 func (h *HeadersInputContainer) SetActive(active bool) {
 	h.Active = active
 	if active {
@@ -101,12 +109,14 @@ func (h *HeadersInputContainer) SetActive(active bool) {
 	}
 }
 
-// Init is the first command that will be run.
+// Init is the first command that will be run by Bubble Tea for this component.
+// It typically returns textinput.Blink to enable cursor blinking for text inputs.
 func (h HeadersInputContainer) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-// SetWidth sets the width for the container and its child components.
+// SetWidth sets the rendering width for the HeadersInputContainer and its child HeaderInput rows.
+// It distributes the width between the header name and value input fields.
 func (h *HeadersInputContainer) SetWidth(width int) {
 	h.width = width
 	// Distribute width: ~40% for header, ~60% for value, adjust as needed
@@ -124,12 +134,15 @@ func (h *HeadersInputContainer) SetWidth(width int) {
 	}
 }
 
-// SetHeight sets the height for the container.
+// SetHeight sets the rendering height for the HeadersInputContainer.
 func (h *HeadersInputContainer) SetHeight(height int) {
 	h.height = height
 }
 
-// Update handles messages and updates the state of the HeadersInputContainer.
+// Update handles messages for the HeadersInputContainer, primarily key presses.
+// It manages navigation (up/down rows, left/right between fields), opening/closing dropdowns,
+// and delegating character input to the focused ValueInput field.
+// It returns the updated HeadersInputContainer and any command to be executed (e.g., focus, blink).
 func (h *HeadersInputContainer) Update(msg tea.Msg) (HeadersInputContainer, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
@@ -222,6 +235,9 @@ func (h *HeadersInputContainer) Update(msg tea.Msg) (HeadersInputContainer, tea.
 	return *h, tea.Batch(cmds...)
 }
 
+// focusCurrentInput ensures that the correct internal input field (HeaderSelect or ValueInput)
+// within the currently focused row is appropriately focused or blurred.
+// It returns a tea.Cmd, typically textinput.Blink if a ValueInput gains focus.
 func (h *HeadersInputContainer) focusCurrentInput() tea.Cmd { // Modified to return tea.Cmd
 	var focusCmd tea.Cmd
 	for i := range h.inputs {
@@ -239,6 +255,8 @@ func (h *HeadersInputContainer) focusCurrentInput() tea.Cmd { // Modified to ret
 	return focusCmd
 }
 
+// blurAllInputs blurs all ValueInput fields in all HeaderInput rows.
+// This is typically called when the HeadersInputContainer itself loses focus.
 func (h *HeadersInputContainer) blurAllInputs() {
 	for i := range h.inputs {
 		h.inputs[i].ValueInput.Blur()
@@ -246,6 +264,9 @@ func (h *HeadersInputContainer) blurAllInputs() {
 }
 
 // View renders the HeadersInputContainer.
+// It displays labels for header and value, followed by each HeaderInput row.
+// Each row shows the selected header name (or a dropdown if open) and the value input field.
+// Styling is applied to indicate focus and active state. Help text is shown if enabled.
 func (h HeadersInputContainer) View() string {
 	var rows []string
 
@@ -328,8 +349,8 @@ func (h HeadersInputContainer) View() string {
 	return lipgloss.JoinVertical(lipgloss.Left, rows...)
 }
 
-// GetHeaders returns the current key-value pairs from the input fields.
-// Only headers that are not "Empty" and have a non-empty value are included.
+// GetHeaders returns a map of all valid headers entered by the user.
+// A header is considered valid if its name is not "Empty" and its value is not an empty string.
 func (h HeadersInputContainer) GetHeaders() map[string]string {
 	headers := make(map[string]string)
 	for _, input := range h.inputs {
@@ -346,8 +367,8 @@ func (h HeadersInputContainer) GetHeaders() map[string]string {
 	return headers
 }
 
-// GetSelectedValues returns the currently selected header and its corresponding value for the focused row.
-// This might be useful for context-aware operations.
+// GetSelectedValues returns the currently selected header name and its corresponding value
+// for the currently focused row. This can be useful for context-aware operations.
 func (h HeadersInputContainer) GetSelectedValues() (header string, value string) {
 	if h.focusedRow < 0 || h.focusedRow >= len(h.inputs) {
 		return "", ""
@@ -360,7 +381,7 @@ func (h HeadersInputContainer) GetSelectedValues() (header string, value string)
 	return header, value
 }
 
-// IsDropdownOpen returns true if the dropdown for the currently focused header is open.
+// IsDropdownOpen checks if the header name dropdown for the currently focused row is open.
 func (h HeadersInputContainer) IsDropdownOpen() bool {
 	if h.focusedInput == 0 && h.focusedRow >= 0 && h.focusedRow < len(h.inputs) {
 		return h.inputs[h.focusedRow].DropdownOpen

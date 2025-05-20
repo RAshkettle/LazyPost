@@ -1,3 +1,4 @@
+// Package components defines various UI components for the LazyPost application.
 package components
 
 import (
@@ -8,16 +9,18 @@ import (
 )
 
 // TokenAuthDetailsComponent holds the UI for Bearer Token input.
-// It's specifically for Bearer tokens, but named generically as TokenAuthDetailsComponent.
+// It's specifically for Bearer tokens, but named generically as TokenAuthDetailsComponent
+// for potential future reuse or extension if other simple token types arise.
 type TokenAuthDetailsComponent struct {
 	width      int
 	height     int
-	active     bool // Is the component itself active
-	tokenInput textinput.Model
+	active     bool // active indicates whether the component is currently focused and accepting input.
+	tokenInput textinput.Model // tokenInput is the text input field for the token.
 	// No focusedField needed as there's only one input
 }
 
 // NewTokenAuthDetailsComponent creates a new instance of TokenAuthDetailsComponent.
+// It initializes the text input field for the Bearer token.
 func NewTokenAuthDetailsComponent() TokenAuthDetailsComponent {
 	ti := textinput.New()
 	ti.Placeholder = "Enter Bearer Token"
@@ -31,6 +34,7 @@ func NewTokenAuthDetailsComponent() TokenAuthDetailsComponent {
 }
 
 // SetActive sets the active state of the component.
+// When active, the token input field gains focus. When inactive, it loses focus.
 func (c *TokenAuthDetailsComponent) SetActive(active bool) {
 	c.active = active
 	if active {
@@ -41,18 +45,21 @@ func (c *TokenAuthDetailsComponent) SetActive(active bool) {
 }
 
 // SetSize sets the dimensions for the component's rendering area.
+// This influences the overall width and height available for the component to render itself.
 func (c *TokenAuthDetailsComponent) SetSize(width, height int) {
 	c.width = width
 	c.height = height
-	// Adjust input width based on component width, similar to BasicAuthDetailsComponent if needed
-	// For now, let's assume a fixed prompt and the input takes available space or a max width.
-	// If we want it to be dynamic like BasicAuth, we'd do:
+	// TODO: Consider adjusting c.tokenInput.Width based on c.width,
+	// similar to BasicAuthDetailsComponent, if dynamic sizing is desired.
+	// Example:
 	// inputWidth := width - lipgloss.Width(c.tokenInput.Prompt) - styles.DefaultTheme.ActiveInputStyle.GetHorizontalPadding() - 2 // Rough estimate
 	// if inputWidth < 10 { inputWidth = 10 }
 	// c.tokenInput.Width = inputWidth
 }
 
 // Update handles messages and updates the component's state.
+// It only processes messages and updates the token input field if the component is active.
+// It returns a tea.Cmd, which might be produced by the text input field's update.
 func (c *TokenAuthDetailsComponent) Update(msg tea.Msg) tea.Cmd {
 	if !c.active {
 		return nil
@@ -64,6 +71,9 @@ func (c *TokenAuthDetailsComponent) Update(msg tea.Msg) tea.Cmd {
 }
 
 // View renders the TokenAuthDetailsComponent.
+// It displays the token input field, styled according to its active and focused state,
+// within a bordered box. The border style also reflects the component's active state.
+// If width or height is zero or negative, it returns an empty string.
 func (c TokenAuthDetailsComponent) View() string {
 	if c.width <= 0 || c.height <= 0 {
 		return ""
@@ -78,12 +88,11 @@ func (c TokenAuthDetailsComponent) View() string {
 		styledTokenView = styles.DefaultTheme.InactiveInputStyle.Render(tokenView)
 	}
 
-	helpTextView := styles.DefaultTheme.HelpTextStyle.Foreground(styles.BrightYellow).Render("Enter your Bearer token.")
 
 	contentWithHelp := lipgloss.JoinVertical(
 		lipgloss.Left,
 		styledTokenView,
-		helpTextView,
+
 	)
 
 	// Use a general border style, active if the component itself is active.

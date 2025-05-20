@@ -1,3 +1,4 @@
+// Package components defines various UI components for the LazyPost application.
 package components
 
 import (
@@ -7,18 +8,18 @@ import (
 )
 
 // MethodSelector represents the HTTP method selection component.
-// It provides a dropdown-like interface for selecting common HTTP methods
-// (GET, POST, PUT, DELETE, PATCH) with visual feedback for the current selection.
+// It allows the user to choose an HTTP method (e.g., GET, POST) from a predefined list.
+// The component can display as a simple selection or an open dropdown list.
 type MethodSelector struct {
-	Methods        []string // Available HTTP methods to select from
-	SelectedMethod int      // Index of the currently selected method
-	Width          int      // Width of the component in characters
-	Active         bool     // Whether the component is currently active/focused
-	DropdownOpen   bool     // Whether the dropdown list is currently open
+	Methods        []string // Methods is the list of available HTTP method strings.
+	SelectedMethod int      // SelectedMethod is the index of the currently selected method in the Methods slice.
+	Width          int      // Width is the rendering width of the component.
+	Active         bool     // Active indicates whether the component is currently focused and interactive.
+	DropdownOpen   bool     // DropdownOpen indicates whether the list of methods is currently displayed as a dropdown.
 }
 
-// NewMethodSelector creates a new method selector component with predefined HTTP methods.
-// The component is initialized with GET method selected, zero width, and inactive state.
+// NewMethodSelector creates and initializes a new MethodSelector component.
+// It populates the list of HTTP methods and sets initial default values.
 func NewMethodSelector() MethodSelector {
 	return MethodSelector{
 		Methods:        []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
@@ -29,20 +30,20 @@ func NewMethodSelector() MethodSelector {
 	}
 }
 
-// SetWidth sets the width of the method selector in characters.
+// SetWidth sets the rendering width for the MethodSelector component.
 func (m *MethodSelector) SetWidth(width int) {
 	m.Width = width
 }
 
-// SetActive sets the active state of the method selector.
-// When active, the component has visual styling to indicate focus and responds to key presses.
+// SetActive sets the active state of the MethodSelector.
+// An active selector responds to key presses and has distinct visual styling.
 func (m *MethodSelector) SetActive(active bool) {
 	m.Active = active
 }
 
-// GetSelectedMethod returns the currently selected HTTP method as a string.
-// If there are no methods available (which shouldn't happen under normal circumstances),
-// it returns an empty string.
+// GetSelectedMethod returns the string representation of the currently selected HTTP method.
+// If no methods are available or selected (which is unlikely in normal operation),
+// it might return an empty string or the default method.
 func (m *MethodSelector) GetSelectedMethod() string {
 	if len(m.Methods) == 0 {
 		return ""
@@ -50,20 +51,18 @@ func (m *MethodSelector) GetSelectedMethod() string {
 	return m.Methods[m.SelectedMethod]
 }
 
-// Next selects the next HTTP method in the list.
-// It wraps around to the beginning if the end of the list is reached.
+// Next selects the next HTTP method in the list, wrapping around to the beginning if necessary.
 func (m *MethodSelector) Next() {
 	m.SelectedMethod = (m.SelectedMethod + 1) % len(m.Methods)
 }
 
-// Prev selects the previous HTTP method in the list.
-// It wraps around to the end if the beginning of the list is reached.
+// Prev selects the previous HTTP method in the list, wrapping around to the end if necessary.
 func (m *MethodSelector) Prev() {
 	m.SelectedMethod = (m.SelectedMethod - 1 + len(m.Methods)) % len(m.Methods)
 }
 
-// Update processes input messages and updates the method selector state.
-// It handles key presses for dropdown navigation, selection, and toggling.
+// Update handles messages for the MethodSelector, primarily key presses when it's active.
+// It allows toggling the dropdown with Enter and navigating with Up/Down arrows when the dropdown is open.
 func (m *MethodSelector) Update(msg tea.Msg) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -91,10 +90,10 @@ func (m *MethodSelector) Update(msg tea.Msg) {
 	}
 }
 
-// View renders the method selector component as a string for terminal display.
-// When the dropdown is closed, it shows only the selected method.
-// When the dropdown is open, it shows all available methods with the selected one highlighted.
-// The component includes a border and title, with styling based on the active state.
+// View renders the MethodSelector component.
+// If the dropdown is open, it lists all methods with the current selection highlighted.
+// If closed, it shows only the selected method with a dropdown indicator.
+// The component includes a title and is bordered, with styles changing based on the active state.
 func (m MethodSelector) View() string {
 	// Define styles
 	borderStyle := styles.BorderStyle

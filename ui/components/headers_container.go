@@ -10,16 +10,18 @@ import (
 )
 
 // HeadersContainer represents a component for displaying HTTP response headers.
-// It formats and displays header information in a visually appealing way.
+// It formats and displays header information. If active, it also shows a hint
+// for copying the content to the clipboard using the 'y' key.
 type HeadersContainer struct {
-	Content    string // The content to display (formatted header text)
-	rawContent string // Store raw content for copying
-	Width      int    // Width of the component in characters
-	Height     int    // Height of the component in characters
-	Active     bool   // Whether the component is currently active/focused
+	Content    string // Content is the formatted header text to be displayed.
+	rawContent string // rawContent stores the unformatted content for clipboard copying.
+	Width      int    // Width is the width of the component in characters.
+	Height     int    // Height is the height of thecomponent in characters.
+	Active     bool   // Active indicates whether the component is currently focused and can respond to key presses like 'y'.
 }
 
-// NewHeadersContainer creates a new headers container.
+// NewHeadersContainer creates and initializes a new HeadersContainer.
+// It starts with placeholder content and default dimensions.
 func NewHeadersContainer() HeadersContainer {
 	return HeadersContainer{
 		Content:    "Response headers will be displayed here.",
@@ -30,28 +32,30 @@ func NewHeadersContainer() HeadersContainer {
 	}
 }
 
-// SetContent updates the header content to display.
+// SetContent updates the header content to be displayed and the raw content for copying.
 func (h *HeadersContainer) SetContent(content string) {
 	h.Content = content
 	h.rawContent = content // Store raw content
 }
 
-// SetWidth sets the width of the component in characters.
+// SetWidth sets the rendering width for the HeadersContainer.
 func (h *HeadersContainer) SetWidth(width int) {
 	h.Width = width
 }
 
-// SetHeight sets the height of the component in characters.
+// SetHeight sets the rendering height for the HeadersContainer.
 func (h *HeadersContainer) SetHeight(height int) {
 	h.Height = height
 }
 
-// SetActive sets the active state of the component.
+// SetActive sets the active state of the HeadersContainer.
+// When active, it may display additional help text or respond to keys.
 func (h *HeadersContainer) SetActive(active bool) {
 	h.Active = active
 }
 
-// Update handles any messages to update the component state.
+// Update handles messages for the HeadersContainer.
+// If the container is active and the 'y' key is pressed, it attempts to copy the raw content to the clipboard.
 func (h *HeadersContainer) Update(msg tea.Msg) tea.Cmd {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -68,7 +72,10 @@ func (h *HeadersContainer) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-// View renders the headers container.
+// View renders the HeadersContainer.
+// It displays the formatted header content. If active, it appends a help message for copying.
+// The content is rendered within a styled box, respecting the component's width and height.
+// If width or height is zero or negative, it returns an empty string.
 func (h HeadersContainer) View() string {
 	if h.Width == 0 || h.Height == 0 {
 		return ""
@@ -91,6 +98,6 @@ func (h HeadersContainer) View() string {
 		Width(h.Width).
 		Height(h.Height).
 		Padding(1, 2)
-	
+
 	return contentStyle.Render(baseContent)
 }

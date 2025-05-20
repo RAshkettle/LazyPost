@@ -1,3 +1,4 @@
+// Package components defines various UI components for the LazyPost application.
 package components
 
 import (
@@ -8,22 +9,24 @@ import (
 )
 
 const (
-	basicAuthUsernameField = 0
-	basicAuthPasswordField = 1
+	basicAuthUsernameField = 0 // basicAuthUsernameField represents the index for the username input field.
+	basicAuthPasswordField = 1 // basicAuthPasswordField represents the index for the password input field.
 )
 
-// BasicAuthDetailsComponent holds the UI for Basic Auth input fields.
+// BasicAuthDetailsComponent holds the UI for Basic Auth input fields (username and password).
+// It manages focus between the two input fields and provides methods to get their values.
 type BasicAuthDetailsComponent struct {
-	width  int
-	height int
-	active bool // Is the component itself active (e.g., visible and interactable in a tab)
+	width  int // width is the width of the component.
+	height int // height is the height of the component.
+	active bool // active indicates whether the component is currently focused and accepting input.
 
-	usernameInput textinput.Model
-	passwordInput textinput.Model
-	focusedField  int // 0 for username, 1 for password
+	usernameInput textinput.Model // usernameInput is the text input field for the username.
+	passwordInput textinput.Model // passwordInput is the text input field for the password.
+	focusedField  int             // focusedField indicates which input field (username or password) currently has focus.
 }
 
 // NewBasicAuthDetailsComponent creates a new instance of BasicAuthDetailsComponent.
+// It initializes the username and password text input fields with placeholders and default settings.
 func NewBasicAuthDetailsComponent() BasicAuthDetailsComponent {
 	username := textinput.New()
 	username.Placeholder = "Enter username"
@@ -46,7 +49,8 @@ func NewBasicAuthDetailsComponent() BasicAuthDetailsComponent {
 }
 
 // SetActive sets the active state of the component.
-// When active, it can receive focus and process updates.
+// When active, it focuses the appropriate input field (username or password).
+// When inactive, it blurs both input fields.
 func (c *BasicAuthDetailsComponent) SetActive(active bool) {
 	c.active = active
 	if !active {
@@ -72,12 +76,16 @@ func (c *BasicAuthDetailsComponent) SetActive(active bool) {
 }
 
 // SetSize sets the dimensions for the component's rendering area.
+// This influences the overall width and height available for the component to render itself.
 func (c *BasicAuthDetailsComponent) SetSize(width, height int) {
 	c.width = width
 	c.height = height
 }
 
 // Update handles messages and updates the component's state.
+// It manages focus switching between username and password fields using Tab/Shift+Tab or Up/Down keys.
+// It delegates other messages to the currently focused input field.
+// It only processes messages if the component is active.
 func (c *BasicAuthDetailsComponent) Update(msg tea.Msg) tea.Cmd {
 	if !c.active {
 		return nil
@@ -137,6 +145,9 @@ func (c *BasicAuthDetailsComponent) Update(msg tea.Msg) tea.Cmd {
 }
 
 // View renders the BasicAuthDetailsComponent.
+// It displays the username and password input fields, styled according to their active and focused state,
+// along with help text, all within a bordered box. The border style also reflects the component's active state.
+// If width or height is zero or negative, it returns an empty string.
 func (c BasicAuthDetailsComponent) View() string {
 	if c.width <= 0 || c.height <= 0 {
 		return "" // Not enough space to render
@@ -203,7 +214,7 @@ func (c BasicAuthDetailsComponent) View() string {
 	return finalView
 }
 
-// GetValues returns the current username and password. (Placeholder)
+// GetValues returns the current values of the username and password input fields.
 func (c *BasicAuthDetailsComponent) GetValues() (username string, password string) {
 	return c.usernameInput.Value(), c.passwordInput.Value()
 }

@@ -1,3 +1,4 @@
+// Package components defines various UI components for the LazyPost application.
 package components
 
 import (
@@ -5,25 +6,27 @@ import (
 	"fmt"
 
 	"github.com/RAshkettle/LazyPost/ui/styles"
-	"github.com/charmbracelet/bubbles/key" // For placeholder keymap
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
-var authTypeOptions = []string{"None", "Basic", "Bearer", "JWT", "OAuth2", "API Key"} // Added "None"
+// authTypeOptions lists the available authentication types for the AuthSelector.
+var authTypeOptions = []string{"None", "Basic", "Bearer", "JWT", "OAuth2", "API Key"}
 
-// AuthSelectorKeyMap defines keybindings for the AuthSelector.
-// (Placeholder for future interactivity)
+// AuthSelectorKeyMap defines keybindings for the AuthSelector component.
+// These bindings are used when the AuthSelector is active and its dropdown is open or closed.
+// (Placeholder for future more complex interactivity, currently uses simple string matching).
 type AuthSelectorKeyMap struct {
-	Open   key.Binding
-	Close  key.Binding
-	Next   key.Binding
-	Prev   key.Binding
-	Select key.Binding
+	Open   key.Binding // Key to open the dropdown.
+	Close  key.Binding // Key to close the dropdown.
+	Next   key.Binding // Key to navigate to the next option in the dropdown.
+	Prev   key.Binding // Key to navigate to the previous option in the dropdown.
+	Select key.Binding // Key to select the highlighted option in the dropdown.
 }
 
-// DefaultAuthSelectorKeyMap provides default keybindings.
-// (Placeholder for future interactivity)
+// DefaultAuthSelectorKeyMap provides default keybindings for the AuthSelector.
+// These are standard keys like Enter, Space, Escape, and arrow keys.
 var DefaultAuthSelectorKeyMap = AuthSelectorKeyMap{
 	Open:   key.NewBinding(key.WithKeys("enter", " ")),
 	Close:  key.NewBinding(key.WithKeys("esc")),
@@ -32,23 +35,25 @@ var DefaultAuthSelectorKeyMap = AuthSelectorKeyMap{
 	Select: key.NewBinding(key.WithKeys("enter")),
 }
 
-// AuthSelector manages the dropdown for authentication types.
+// AuthSelector manages the dropdown UI for selecting an authentication type.
+// It handles opening/closing the dropdown, navigating options, and displaying the current selection.
 type AuthSelector struct {
-	options            []string
-	selectedIndex      int
-	highlightedIndex   int // Used when isOpen is true
-	isOpen             bool
-	active             bool
-	width              int
-	activeStyle        lipgloss.Style
-	inactiveStyle      lipgloss.Style
-	dropdownTextStyle  lipgloss.Style
-	dropdownArrowStyle lipgloss.Style
-	dropdownItemStyle         lipgloss.Style // Style for items when dropdown is open
-	keymap             AuthSelectorKeyMap
+	options            []string         // options are the available authentication type strings.
+	selectedIndex      int              // selectedIndex is the index of the currently chosen option.
+	highlightedIndex   int              // highlightedIndex is the index of the option highlighted when the dropdown is open.
+	isOpen             bool             // isOpen indicates whether the dropdown list is visible.
+	active             bool             // active indicates whether the component is currently focused and interactive.
+	width              int              // width is the rendering width of the component.
+	activeStyle        lipgloss.Style   // activeStyle is the style applied when the component is active.
+	inactiveStyle      lipgloss.Style   // inactiveStyle is the style applied when the component is inactive.
+	dropdownTextStyle  lipgloss.Style   // dropdownTextStyle is the style for text within the dropdown.
+	dropdownArrowStyle lipgloss.Style   // dropdownArrowStyle is the style for the dropdown arrow indicator.
+	dropdownItemStyle  lipgloss.Style   // dropdownItemStyle is the style for individual items when the dropdown is open.
+	keymap             AuthSelectorKeyMap // keymap holds the keybindings for interacting with the selector.
 }
 
-// NewAuthSelector creates a new AuthSelector.
+// NewAuthSelector creates and initializes a new AuthSelector component.
+// It sets default options, styles, and keymap.
 func NewAuthSelector() AuthSelector {
 	return AuthSelector{
 		options:            authTypeOptions,
@@ -65,8 +70,9 @@ func NewAuthSelector() AuthSelector {
 	}
 }
 
-// View renders the AuthSelector.
-// It now handles both closed and open states.
+// View renders the AuthSelector component.
+// It displays either the currently selected option (if closed) or the list of options (if open).
+// Styling is applied based on the active state and whether the dropdown is open.
 func (as AuthSelector) View() string {
 	var currentStyle lipgloss.Style
 	if as.active {
@@ -112,17 +118,20 @@ func (as AuthSelector) View() string {
 	return currentStyle.Copy().Width(as.width).Render(dropdownContent)
 }
 
-// SetWidth sets the width of the AuthSelector.
+// SetWidth sets the rendering width for the AuthSelector component.
 func (as *AuthSelector) SetWidth(width int) {
 	as.width = width
 }
 
 // SetActive sets the active state of the AuthSelector.
+// An active selector can be interacted with via keybindings.
 func (as *AuthSelector) SetActive(active bool) {
 	as.active = active
 }
 
-// Update handles messages for the AuthSelector.
+// Update handles messages for the AuthSelector, primarily key presses.
+// It manages opening/closing the dropdown, navigating options, and selecting an item.
+// It only processes messages if the selector is active.
 func (as *AuthSelector) Update(msg tea.Msg) tea.Cmd {
 	if !as.active { // Only process messages if active and the component is supposed to be interactive
 		return nil
@@ -161,23 +170,26 @@ func (as *AuthSelector) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-// AuthContainer encapsulates the AuthSelector and manages the "Authentication" section.
+// AuthContainer encapsulates the AuthSelector and the various authentication detail components.
+// It manages which auth detail view is shown based on the AuthSelector's choice
+// and delegates updates and focus to the appropriate child component.
 type AuthContainer struct {
-	Width          int
-	Height         int
-	Active         bool
-	authSelector   AuthSelector
-	titleStyle     lipgloss.Style
+	Width          int            // Width is the rendering width of the container.
+	Height         int            // Height is the rendering height of the container.
+	Active         bool           // Active indicates if the container (and potentially its children) is focused.
+	authSelector   AuthSelector   // authSelector is the dropdown for choosing auth type.
+	titleStyle     lipgloss.Style // titleStyle is used for the container's title (if any, currently unused).
 
-	// Detail components
-	basicAuthDetails   BasicAuthDetailsComponent
-	tokenAuthDetails   TokenAuthDetailsComponent // For Bearer
-	jwtAuthDetails     JWTAuthDetailsComponent   // For JWT
-	apiKeyAuthDetails  APIKeyAuthDetailsComponent
-	oauth2AuthDetails  OAuth2AuthDetailsComponent
+	// Detail components for each authentication type.
+	basicAuthDetails   BasicAuthDetailsComponent  // basicAuthDetails handles Basic authentication inputs.
+	tokenAuthDetails   TokenAuthDetailsComponent  // tokenAuthDetails handles Bearer token input.
+	jwtAuthDetails     JWTAuthDetailsComponent    // jwtAuthDetails handles JWT input.
+	apiKeyAuthDetails  APIKeyAuthDetailsComponent // apiKeyAuthDetails handles API Key input.
+	oauth2AuthDetails  OAuth2AuthDetailsComponent // oauth2AuthDetails handles OAuth2 details.
 }
 
-// NewAuthContainer creates a new AuthContainer.
+// NewAuthContainer creates and initializes a new AuthContainer.
+// It creates an AuthSelector and instances of all auth detail components.
 func NewAuthContainer() AuthContainer {
 	selector := NewAuthSelector()
 	return AuthContainer{
@@ -195,19 +207,22 @@ func NewAuthContainer() AuthContainer {
 	}
 }
 
-// SetWidth sets the width of the AuthContainer.
+// SetWidth sets the rendering width for the AuthContainer and its children.
+// The width is distributed to the AuthSelector and the active auth detail component.
 func (ac *AuthContainer) SetWidth(width int) {
 	ac.Width = width
 	// Child components' widths will be set during View rendering or specific focus changes.
 }
 
-// SetHeight sets the height of the AuthContainer.
+// SetHeight sets the rendering height for the AuthContainer and its children.
+// The height is distributed to the AuthSelector and the active auth detail component.
 func (ac *AuthContainer) SetHeight(height int) {
 	ac.Height = height
 	// Child components' heights will be set during View rendering.
 }
 
-// SetActive sets the active state of the AuthContainer and its focusable children.
+// SetActive sets the active state of the AuthContainer.
+// It also propagates the active state to the AuthSelector and the currently selected auth detail component.
 func (ac *AuthContainer) SetActive(active bool) {
 	ac.Active = active
 	// The authSelector is always potentially interactive if the container is active.
@@ -240,6 +255,9 @@ func (ac *AuthContainer) SetActive(active bool) {
 }
 
 // Update handles messages for the AuthContainer.
+// It delegates messages to the AuthSelector and the currently active auth detail component.
+// It also re-evaluates which detail component should be active if the AuthSelector's selection changes.
+// It only processes messages if the container itself is active.
 func (ac *AuthContainer) Update(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 
@@ -295,6 +313,9 @@ func (ac *AuthContainer) Update(msg tea.Msg) tea.Cmd {
 }
 
 // View renders the AuthContainer.
+// It displays the AuthSelector and the view of the currently selected auth detail component.
+// The layout includes spacing between the selector and the detail view.
+// The container is enclosed in a border styled according to its active state.
 func (ac AuthContainer) View() string {
 	if ac.Width == 0 || ac.Height == 0 {
 		return ""
@@ -424,7 +445,11 @@ func (ac AuthContainer) View() string {
 	return outerFrame.Render(finalInnerContent)
 }
 
-// GetAuthHeaders returns the authentication headers based on the selected type and inputs.
+// GetAuthHeaders constructs and returns a map of HTTP headers based on the selected authentication type
+// and the values entered in the corresponding auth detail component.
+// For "None", it returns an empty map. For other types, it retrieves credentials/tokens
+// and formats them into the appropriate "Authorization" header (or other headers for API Key, if applicable).
+// Placeholder comments indicate where logic for JWT, API Key, and OAuth2 needs to be fully implemented.
 func (ac AuthContainer) GetAuthHeaders() map[string]string {
 	headers := make(map[string]string)
 	selectedType := ac.authSelector.options[ac.authSelector.selectedIndex]
@@ -467,7 +492,9 @@ func (ac AuthContainer) GetAuthHeaders() map[string]string {
 	return headers
 }
 
-// IsFocused checks if the AuthContainer or its components are focused. (Placeholder)
+// IsFocused checks if the AuthContainer itself is considered to be in a focused state.
+// Currently, this is equivalent to its Active state.
+// (Placeholder for potentially more complex focus logic).
 func (ac AuthContainer) IsFocused() bool {
 	return ac.Active // Simple check for now, might need to check authSelector.active
 }
